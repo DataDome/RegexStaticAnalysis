@@ -223,7 +223,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 * A constructor for creating one multidimensional vertex from a collection
 	 * of multidimensional vertices
 	 * 
-	 * @param mStates
+	 * @param states
 	 *            The collection of vertices
 	 */
 	public NFAVertexND(Collection<String> states) {
@@ -238,7 +238,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 * A constructor for creating one multidimensional vertex from a set
 	 * of multidimensional vertices
 	 * 
-	 * @param mStates
+	 * @param states
 	 *            The collection of vertices
 	 */
 	public NFAVertexND(Set<NFAVertexND> states) {
