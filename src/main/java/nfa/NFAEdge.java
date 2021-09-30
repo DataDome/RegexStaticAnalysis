@@ -142,11 +142,13 @@ public class NFAEdge extends DefaultEdge implements Comparable<NFAEdge> {
 			return false;
 		}
 		NFAEdge n = (NFAEdge) o;
-		boolean test1 = sourceVertex.equals(n.getSourceVertex());
-		boolean test2 = targetVertex.equals(n.getTargetVertex());
-		boolean test3 = transitionLabel.equals(n.getTransitionLabel());
-		return test1 && test2 && test3;
-
+		if (!sourceVertex.equals(n.sourceVertex)) {
+			return false;
+		}
+		if (!targetVertex.equals(n.targetVertex)) {
+			return false;
+		}
+		return transitionLabel.equals(n.transitionLabel);
 	}
 
 	@Override

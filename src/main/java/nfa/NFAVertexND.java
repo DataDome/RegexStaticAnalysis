@@ -1,5 +1,7 @@
 package nfa;
 
+import util.MurmurHash3;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -15,6 +17,10 @@ import java.util.Set;
 public class NFAVertexND implements Comparable<NFAVertexND> {
 
 	private ArrayList<String> states;
+
+	private int hashCode1;
+
+	private int hashCode2;
 
 	/**
 	 * @return The states contained in this state
@@ -65,7 +71,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 *            The state to add.
 	 */
 	public void addState(String state) {
-		states.add(state);
+		addToStates(state);
 	}
 
 	/**
@@ -82,8 +88,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 *            The state number at dimension one
 	 */
 	public NFAVertexND(int m1StateNumber) {
-		states = new ArrayList<String>();
-		states.add("" + m1StateNumber);
+		this(String.valueOf(m1StateNumber));
 	}
 
 	/**
@@ -94,7 +99,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 */
 	public NFAVertexND(String m1StateNumber) {
 		states = new ArrayList<String>();
-		states.add(m1StateNumber);
+		addToStates(m1StateNumber);
 	}
 	
 	/**
@@ -108,10 +113,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 *            The state number at dimension three
 	 */
 	public NFAVertexND(int m1StateNumber, int m2StateNumber, int m3StateNumber) {
-		states = new ArrayList<String>();
-		states.add("" + m1StateNumber);
-		states.add("" + m2StateNumber);
-		states.add("" + m3StateNumber);
+		this(String.valueOf(m1StateNumber), String.valueOf(m2StateNumber), String.valueOf(m3StateNumber));
 	}
 
 	/**
@@ -126,9 +128,9 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 */
 	public NFAVertexND(String m1StateNumber, String m2StateNumber, String m3StateNumber) {
 		states = new ArrayList<String>();
-		states.add(m1StateNumber);
-		states.add(m2StateNumber);
-		states.add(m3StateNumber);
+		addToStates(m1StateNumber);
+		addToStates(m2StateNumber);
+		addToStates(m3StateNumber);
 	}
 	
 	/**
@@ -146,12 +148,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 *            The state number at dimension five
 	 */
 	public NFAVertexND(int m1StateNumber, int m2StateNumber, int m3StateNumber, int m4StateNumber, int m5StateNumber) {
-		states = new ArrayList<String>();
-		states.add("" + m1StateNumber);
-		states.add("" + m2StateNumber);
-		states.add("" + m3StateNumber);
-		states.add("" + m4StateNumber);
-		states.add("" + m5StateNumber);
+		this(String.valueOf(m1StateNumber), String.valueOf(m2StateNumber), String.valueOf(m3StateNumber), String.valueOf(m4StateNumber), String.valueOf(m5StateNumber));
 	}
 
 	/**
@@ -170,11 +167,11 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 */
 	public NFAVertexND(String m1StateNumber, String m2StateNumber, String m3StateNumber, String m4StateNumber, String m5StateNumber) {
 		states = new ArrayList<String>();
-		states.add(m1StateNumber);
-		states.add(m2StateNumber);
-		states.add(m3StateNumber);
-		states.add(m4StateNumber);
-		states.add(m5StateNumber);
+		addToStates(m1StateNumber);
+		addToStates(m2StateNumber);
+		addToStates(m3StateNumber);
+		addToStates(m4StateNumber);
+		addToStates(m5StateNumber);
 	}
 	
 	/**
@@ -184,10 +181,10 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 *            The vertices
 	 */
 	public NFAVertexND(int... mStates) {
-
 		states = new ArrayList<String>();
 		for (int i : mStates) {
-			states.add("" + i);
+			String state = String.valueOf(i);
+			addToStates(state);
 		}
 	}
 
@@ -201,7 +198,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 
 		states = new ArrayList<String>();
 		for (String i : mStates) {
-			states.add(i);
+			addToStates(i);
 		}
 	}
 	
@@ -217,7 +214,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 		states = new ArrayList<String>();
 		for (NFAVertexND nfavnd : mStates) {
 			for (String i : nfavnd.states) {
-				states.add(i);
+				addToStates(i);
 			}
 		}
 	}
@@ -233,7 +230,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 
 		this.states = new ArrayList<String>();
 		for (String i : states) {
-			this.states.add(i);
+			this.addToStates(i);
 		}
 	}
 	
@@ -248,7 +245,9 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 
 		this.states = new ArrayList<String>();
 		for (NFAVertexND i : states) {
-			this.states.addAll(i.states);
+			for (String s : i.states) {
+				this.addToStates(s);
+			}
 		}
 	}
 
@@ -283,25 +282,38 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 			return false;
 		}
 		NFAVertexND p = (NFAVertexND) o;
-		boolean condition = states.equals(p.getStates());
-		return condition;
+		return hashCode1 == p.hashCode1 && hashCode2 == p.hashCode2 && states.size() == p.states.size();
 
 	}
 
 	@Override
 	public int hashCode() {
-		int total = 0;
-		for (String i : states) {
-			total += i.hashCode();
-		}
+		return hashCode1 + hashCode2 + states.size();
+	}
 
-		return total;
+	private void addToStates(String state) {
+		states.add(state);
+		for (int i = 0; i < state.length(); i++) {
+			hashCode1 = MurmurHash3.hash32(state.charAt(i), hashCode1);
+			hashCode2 = 31 * hashCode2 + state.charAt(i);
+		}
 	}
 
 	@Override
 	public int compareTo(NFAVertexND o) {
+		int rc = Integer.compare(states.size(), o.states.size());
+		if (rc != 0) {
+			return rc;
+		}
 
-		return toString().compareTo(o.toString());
+		for (int i = 0; i < states.size(); i++) {
+			rc = states.get(i).compareTo(o.states.get(i));
+			if (rc != 0) {
+				return rc;
+			}
+		}
+
+		return 0;
 	}
 
 }

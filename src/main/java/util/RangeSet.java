@@ -110,8 +110,7 @@ public class RangeSet implements Iterable<Range> {
 		if (ranges.isEmpty()) {
 			throw new IllegalStateException("Cannot sample from empty range set.");
 		}
-		Range first = ranges.iterator().next();
-		return first.low;
+		return ranges.first().low;
 		
 	}
 	

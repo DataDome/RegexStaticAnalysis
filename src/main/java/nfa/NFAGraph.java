@@ -223,9 +223,17 @@ public class NFAGraph extends DirectedPseudograph<NFAVertexND, NFAEdge> {
 		if (!super.equals(o)) {
 			return false;
 		}
-		
-		/* testing that the amount of parallel edges are equal */
+
 		NFAGraph n = (NFAGraph) o;
+		if (initialState != null && !initialState.equals(n.getInitialState())) {
+			return false;
+		}
+
+		if (acceptingStates.size() != n.acceptingStates.size()) {
+			return false;
+		}
+
+		/* testing that the amount of parallel edges are equal */
 		for (NFAEdge e : n.edgeSet()) {
 			Set<NFAEdge> nEdges = super.getAllEdges(e.getSourceVertex(), e.getTargetVertex());
 			for (NFAEdge nEdge : nEdges) {
@@ -235,20 +243,12 @@ public class NFAGraph extends DirectedPseudograph<NFAVertexND, NFAEdge> {
 			}
 			
 		}
-		
-		if (initialState != null && !initialState.equals(n.getInitialState())) {
+
+		if (!acceptingStates.containsAll(n.acceptingStates)) {
 			return false;
 		}
-		
-		HashSet<NFAVertexND> myAcceptingStates = new HashSet<NFAVertexND>(acceptingStates);
-		HashSet<NFAVertexND> otherAcceptingStates = new HashSet<NFAVertexND>(n.getAcceptingStates());
 
-		boolean condition1 = myAcceptingStates.size() == otherAcceptingStates.size();
-		boolean condition2 = myAcceptingStates.containsAll(otherAcceptingStates);
-		boolean condition3 = otherAcceptingStates.containsAll(myAcceptingStates);
-		/* first condition might be redundant */
-		return condition1 && condition2 && condition3 ;
-
+		return n.acceptingStates.containsAll(acceptingStates);
 	}
 	
 	public NFAGraph reverse() {
