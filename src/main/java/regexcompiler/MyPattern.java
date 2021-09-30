@@ -454,7 +454,7 @@ public class MyPattern {
 			case STAR:
 				return new RegexStarOperator(quantifierType, i);
 			default:
-				throw new RuntimeException("Unkown oeprator: " + ot);
+				throw new RuntimeException("Unknown operator: " + ot);
 			}
 		}
 	
@@ -473,11 +473,11 @@ public class MyPattern {
 							groupType = RegexGroupType.NEGLOOKBEHIND;
 							break;
 						default:
-							throw new PatternSyntaxException("Unkown look-behind group", pattern, i);
+							throw new PatternSyntaxException("Unknown look-behind group", pattern, i);
 
 						}
 					} else {
-						throw new PatternSyntaxException("Unkown look-behind group", pattern, i);
+						throw new PatternSyntaxException("Unknown look-behind group", pattern, i);
 					}
 					i += 4;
 				} else {
@@ -492,7 +492,7 @@ public class MyPattern {
 						groupType = RegexGroupType.NEGLOOKAHEAD;
 						break;
 					default:
-						throw new PatternSyntaxException("Unkown inline modifier", pattern, i);
+						throw new PatternSyntaxException("Unknown inline modifier", pattern, i);
 
 					}
 					i += 3;

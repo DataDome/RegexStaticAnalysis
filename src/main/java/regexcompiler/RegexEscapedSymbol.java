@@ -39,7 +39,7 @@ public class RegexEscapedSymbol extends RegexSubexpression<String> {
 		case CHARACTER_PROPERTY:
 			return "\\p{" + getSubexpressionContent() + "}";
 		default:
-			throw new RuntimeException("Unkown RegexEscapedSymbolType");
+			throw new RuntimeException("Unknown RegexEscapedSymbolType");
 			
 		}
 	}

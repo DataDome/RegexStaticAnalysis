@@ -64,11 +64,11 @@ public abstract class ParsingPreprocessor implements Preprocessor {
 								groupType = GroupFactor.GroupType.NEGLOOKBEHIND;
 								break;
 							default:
-								throw new PatternSyntaxException("Unkown look-behind group", regex, i);
+								throw new PatternSyntaxException("Unknown look-behind group", regex, i);
 
 							}
 						} else {
-							throw new PatternSyntaxException("Unkown look-behind group", regex, i);
+							throw new PatternSyntaxException("Unknown look-behind group", regex, i);
 						}
 						i += 4;
 					} else {
@@ -89,7 +89,7 @@ public abstract class ParsingPreprocessor implements Preprocessor {
 							groupType = GroupFactor.GroupType.NEGLOOKAHEAD;
 							break;
 						default:
-							throw new PatternSyntaxException("Unkown inline modifier", regex, i);
+							throw new PatternSyntaxException("Unknown inline modifier", regex, i);
 
 						}
 						i += 3;

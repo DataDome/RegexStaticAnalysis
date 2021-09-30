@@ -18,8 +18,14 @@ public class InterfaceSettings {
 		return isVerbose;
 	}
 
-	public InterfaceSettings(InputType inputType, boolean isVerbose) {
+	private final boolean isDebug;
+	public boolean getIsDebug() {
+		return isDebug;
+	}
+
+	public InterfaceSettings(InputType inputType, boolean isVerbose, boolean isDebug) {
 		this.inputType = inputType;
 		this.isVerbose = isVerbose;
+		this.isDebug = isDebug;
 	}
 }

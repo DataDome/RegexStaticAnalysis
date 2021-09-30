@@ -33,7 +33,7 @@ import com.google.gson.Gson;
 
 public class AnalysisDriverStdOut {
 
-	private static final boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	
 	/* Interface Settings */
 	private static InputType inputType;
@@ -54,6 +54,7 @@ public class AnalysisDriverStdOut {
 	public static void performAnalysis(BufferedReader regexesReader, InterfaceSettings interfaceSettings, AnalysisSettings analysisSettings) {
 		inputType = interfaceSettings.getInputType();
 		isVerbose = interfaceSettings.getIsVerbose();	
+		DEBUG = interfaceSettings.getIsDebug();
 
 		nfaConstruction = analysisSettings.getNFAConstruction();
 		preprocessingType = analysisSettings.getPreprocessingType();
@@ -364,7 +365,7 @@ public class AnalysisDriverStdOut {
 			analyser = new NFAAnalyserFlattening(priorityRemovalStrategy);
 			break;
 		default:
-			throw new RuntimeException("Unkown Strategy: " + epsilonLoopRemovalStrategy);
+			throw new RuntimeException("Unknown Strategy: " + epsilonLoopRemovalStrategy);
 		}
 		return analyser;
 	}
@@ -640,6 +641,8 @@ public class AnalysisDriverStdOut {
 			} catch (Exception e) {
 				if (DEBUG) {
 					e.printStackTrace();
+				} else if (isVerbose) {
+					System.out.println("  " + e.getMessage());
 				}
 				Thread.currentThread().interrupt();
 				analysisResultsType = AnalysisResultsType.ANALYSIS_FAILED;

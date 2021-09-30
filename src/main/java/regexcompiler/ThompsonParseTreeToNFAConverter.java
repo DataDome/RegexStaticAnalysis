@@ -232,7 +232,7 @@ public class ThompsonParseTreeToNFAConverter extends ParseTreeToNFAConverter {
 			throw new UnsupportedOperationException("Possessive quantifiers not implemented.");
 			//break;
 		default:
-			throw new RuntimeException("Unkown quantifier: " + quantifierType);
+			throw new RuntimeException("Unknown quantifier: " + quantifierType);
 		}
 		 
 		
@@ -303,7 +303,7 @@ public class ThompsonParseTreeToNFAConverter extends ParseTreeToNFAConverter {
 			throw new UnsupportedOperationException("Possessive quantifiers not implemented.");
 			//break;
 		default:
-			throw new RuntimeException("Unkown quantifier: " + quantifierType);
+			throw new RuntimeException("Unknown quantifier: " + quantifierType);
 		}
 		 
 		
@@ -375,7 +375,7 @@ public class ThompsonParseTreeToNFAConverter extends ParseTreeToNFAConverter {
 		case POSSESSIVE:
 			throw new UnsupportedOperationException("Possessive quantifiers not implemented.");
 		default:
-			throw new RuntimeException("Unkown quantifier: " + quantifierType);
+			throw new RuntimeException("Unknown quantifier: " + quantifierType);
 		}		 
 		
 		NFAGraph resultNFA = new NFAGraph();
@@ -475,7 +475,7 @@ public class ThompsonParseTreeToNFAConverter extends ParseTreeToNFAConverter {
 			throw new UnsupportedOperationException("Possessive quantifiers not implemented.");
 			//break;
 		default:
-			throw new RuntimeException("Unkown quantifier: " + quantifierType);
+			throw new RuntimeException("Unknown quantifier: " + quantifierType);
 		}
 		 
 		
