@@ -1,17 +1,7 @@
 package nfa.transitionlabel;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.io.*;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.net.*;
@@ -35,86 +25,70 @@ public class CharacterPropertyParser {
 	private static final HashSet<String> caseInsensitiveSuffixes = new HashSet<>();
 
 	static {
-		URL binUrl = CharacterPropertyParser.class.getClassLoader().getResource("predef_ranges.txt");
-		String FILE = binUrl.getPath();
-		try {
-
-			BufferedReader fileReader = new BufferedReader(new FileReader(FILE));
-			try {
-				while (fileReader.ready()) {
-					String line = fileReader.readLine();
-					String fields[] = line.split(":");
-					String prefixesStr = fields[0];
-					String prefixCS = fields[1];
-					String suffixesStr = fields[2];
-					String suffixCS = fields[3];
-					String rangesStr = fields[4];
-					String[] ranges = rangesStr.split(",");
-					RangeSet rangeSet = new RangeSet(MIN_16UNICODE, MAX_16UNICODE);
-					/* We first put the Ranges in a separate list, so we only have to union (and so merge) once */
-					List<Range> rangesToAdd = new LinkedList<Range>();
-					for (String range : ranges) {
-						if (range.contains("-")) {
-							int index = range.indexOf("-");
-							String minBoundStr = range.substring(0, index);
-							String maxBoundStr = range.substring(index + 1);
-							int minBound = Integer.parseInt(minBoundStr);
-							int maxBound = Integer.parseInt(maxBoundStr);
-							rangesToAdd.add(rangeSet.createRange(minBound, maxBound + 1));
-						} else {
-							int rangeInt = Integer.parseInt(range);
-							rangesToAdd.add(rangeSet.createRange(rangeInt));
-						}
+		try (BufferedReader fileReader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(CharacterPropertyParser.class.getClassLoader().getResourceAsStream("/predef_ranges.txt"))))) {
+			while (fileReader.ready()) {
+				String line = fileReader.readLine();
+				String[] fields = line.split(":");
+				String prefixesStr = fields[0];
+				String prefixCS = fields[1];
+				String suffixesStr = fields[2];
+				String suffixCS = fields[3];
+				String rangesStr = fields[4];
+				String[] ranges = rangesStr.split(",");
+				RangeSet rangeSet = new RangeSet(MIN_16UNICODE, MAX_16UNICODE);
+				/* We first put the Ranges in a separate list, so we only have to union (and so merge) once */
+				List<Range> rangesToAdd = new LinkedList<Range>();
+				for (String range : ranges) {
+					if (range.contains("-")) {
+						int index = range.indexOf("-");
+						String minBoundStr = range.substring(0, index);
+						String maxBoundStr = range.substring(index + 1);
+						int minBound = Integer.parseInt(minBoundStr);
+						int maxBound = Integer.parseInt(maxBoundStr);
+						rangesToAdd.add(rangeSet.createRange(minBound, maxBound + 1));
+					} else {
+						int rangeInt = Integer.parseInt(range);
+						rangesToAdd.add(rangeSet.createRange(rangeInt));
 					}
-					rangeSet.union(rangesToAdd);
-					
-					String prefixes[] = prefixesStr.split(",");
-					for (String prefix : prefixes) {
-						String suffixes[] = suffixesStr.split(",");
-						for (String suffix : suffixes) {
-							if (prefixCS.equals("false")) {
-								caseInsensitivePrefixes.add(prefix);
-							}
-							if (suffixCS.equals("false")) {
-								caseInsensitiveSuffixes.add(suffix);
-							}
-							
-							if (prefixToSuffixesToRanges.containsKey(prefix)) {
-								/* Get suffixes currently associated with prefix */
-								HashMap<String, RangeSet> newSuffixesToRanges = prefixToSuffixesToRanges.get(prefix);
-								if (newSuffixesToRanges.containsKey(suffix)) {
-									RangeSet oldRangesSet = newSuffixesToRanges.get(suffix);
-									if (!oldRangesSet.equals(rangeSet)) {
-										throw new RuntimeException("Contradicting ranges for prefix and suffix");
-									}
-								} else {
-									newSuffixesToRanges.put(suffix, rangeSet);
-									prefixToSuffixesToRanges.put(prefix, newSuffixesToRanges);
+				}
+				rangeSet.union(rangesToAdd);
+
+				String[] prefixes = prefixesStr.split(",");
+				for (String prefix : prefixes) {
+					String[] suffixes = suffixesStr.split(",");
+					for (String suffix : suffixes) {
+						if (prefixCS.equals("false")) {
+							caseInsensitivePrefixes.add(prefix);
+						}
+						if (suffixCS.equals("false")) {
+							caseInsensitiveSuffixes.add(suffix);
+						}
+
+						if (prefixToSuffixesToRanges.containsKey(prefix)) {
+							/* Get suffixes currently associated with prefix */
+							HashMap<String, RangeSet> newSuffixesToRanges = prefixToSuffixesToRanges.get(prefix);
+							if (newSuffixesToRanges.containsKey(suffix)) {
+								RangeSet oldRangesSet = newSuffixesToRanges.get(suffix);
+								if (!oldRangesSet.equals(rangeSet)) {
+									throw new RuntimeException("Contradicting ranges for prefix and suffix");
 								}
-								
 							} else {
-								HashMap<String, RangeSet> newSuffixesToRanges = new HashMap<String, RangeSet>();
 								newSuffixesToRanges.put(suffix, rangeSet);
 								prefixToSuffixesToRanges.put(prefix, newSuffixesToRanges);
 							}
+
+						} else {
+							HashMap<String, RangeSet> newSuffixesToRanges = new HashMap<String, RangeSet>();
+							newSuffixesToRanges.put(suffix, rangeSet);
+							prefixToSuffixesToRanges.put(prefix, newSuffixesToRanges);
 						}
 					}
-					
-					
 				}
-			} catch (IOException ioe) {
-				ioe.printStackTrace();
-			} finally {
-				try {
-					fileReader.close();
-				} catch (IOException e) {
-					
-					e.printStackTrace();
-				}
+
+
 			}
-		} catch (FileNotFoundException e) {
-			System.err.println("The file " + FILE + " was not found in " + System.getProperty("user.dir"));
-			e.printStackTrace();
+		} catch (IOException e) {
+			throw new RuntimeException("Can't load predef_ranges: " + e.getMessage(), e);
 		}
 	}
 
