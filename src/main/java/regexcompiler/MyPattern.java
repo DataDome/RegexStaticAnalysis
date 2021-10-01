@@ -554,7 +554,7 @@ public class MyPattern {
 			//System.out.println("Parse Regex");
 			if (currentToken.getTokenType() == TokenType.ANCHOR) {
 				RegexAnchor regexAnchorToken = (RegexAnchor) currentToken;
-				if (regexAnchorToken.getAnchorType() == RegexAnchorType.LINESTART && !isNested) {
+				if (!isNested) {
 					nextToken();
 					/* Since we assume line based matching, we ignore the caret at the start */
 				} else {
@@ -577,7 +577,7 @@ public class MyPattern {
 			if (!endOfStream && currentToken.getTokenType() == TokenType.ANCHOR) {
 				RegexAnchor regexAnchorToken = (RegexAnchor) currentToken;
 				nextToken();
-				if (regexAnchorToken.getAnchorType() == RegexAnchorType.LINEEND && !isNested) {
+				if (!isNested) {
 					/* Since we assume line based matching, we ignore the dollar at the line end */
 				} else {
 					throw new UnimplementedFunctionalityException("Anchor at invalid position: " + regexAnchorToken.getAnchorType() + " at " + regexAnchorToken.getIndex());
