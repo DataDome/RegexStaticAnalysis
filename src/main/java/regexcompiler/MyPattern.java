@@ -501,6 +501,17 @@ public class MyPattern {
 					case '!':
 						groupType = RegexGroupType.NEGLOOKAHEAD;
 						break;
+					// enable case insensitivity doesn't change anything
+					case 'i':
+						if (patternArr[i + 3] == ')') {
+							i += 2;
+							return RegexGroupType.NORMAL;
+						}
+					case '-':
+						if (patternArr[i + 3] == 'i' && patternArr[i + 4] == ')') {
+							i += 3;
+							return RegexGroupType.NORMAL;
+						}
 					default:
 						throw new PatternSyntaxException("Unknown inline modifier", pattern, i);
 
