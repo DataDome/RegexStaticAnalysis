@@ -167,6 +167,16 @@ public class MyPattern {
 							this.verbatimMode = true;
 							i++;
 							break;
+						case 'b':
+							RegexAnchor wordBoundary = new RegexAnchor(RegexAnchorType.WORD, i);
+							tokenList.add(wordBoundary);
+							i++;
+							break;
+						case 'B':
+							RegexAnchor nonWordBoundary = new RegexAnchor(RegexAnchorType.NONWORD, i);
+							tokenList.add(nonWordBoundary);
+							i++;
+							break;
 						default:
 							RegexEscapedSymbol res = createTokenEscapedSymbol();
 							tokenList.add(res);

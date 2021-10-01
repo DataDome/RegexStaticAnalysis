@@ -116,9 +116,6 @@ public class TransitionLabelParserRecursive {
 		case "n":
 			consumeSymbolIfHasNext();
 			return parseCharacterRange("\n");
-		//case "b":
-		//	consumeSymbolIfHasNext();
-		//	return parseCharacterRange("\b");
 		case "r":
 			consumeSymbolIfHasNext();
 			return parseCharacterRange("\r");
