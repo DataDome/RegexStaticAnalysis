@@ -583,9 +583,6 @@ public class MyPattern {
 					throw new UnimplementedFunctionalityException("Anchor at invalid position: " + regexAnchorToken.getAnchorType() + " at " + regexAnchorToken.getIndex());
 				}
 			}
-			if (!endOfStream) {
-				throw new PatternSyntaxException("Dangling meta character '" + currentToken + "'", pattern, currentToken.getIndex());
-			}
 			//System.out.println("END Parse Regex");
 			return root;
 			
