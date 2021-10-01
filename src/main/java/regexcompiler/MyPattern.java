@@ -553,13 +553,7 @@ public class MyPattern {
 		public TreeNode parseRegex() {
 			//System.out.println("Parse Regex");
 			if (currentToken.getTokenType() == TokenType.ANCHOR) {
-				RegexAnchor regexAnchorToken = (RegexAnchor) currentToken;
-				if (!isNested) {
-					nextToken();
-					/* Since we assume line based matching, we ignore the caret at the start */
-				} else {
-					throw new UnimplementedFunctionalityException("Anchor at invalid position: " + regexAnchorToken.getAnchorType() + " at " + regexAnchorToken.getIndex());
-				}
+				nextToken();
 			}
 			TreeNode root = parseTerm();
 			while (checkEndOfTerm()) {
@@ -575,13 +569,7 @@ public class MyPattern {
 				
 			}
 			if (!endOfStream && currentToken.getTokenType() == TokenType.ANCHOR) {
-				RegexAnchor regexAnchorToken = (RegexAnchor) currentToken;
 				nextToken();
-				if (!isNested) {
-					/* Since we assume line based matching, we ignore the dollar at the line end */
-				} else {
-					throw new UnimplementedFunctionalityException("Anchor at invalid position: " + regexAnchorToken.getAnchorType() + " at " + regexAnchorToken.getIndex());
-				}
 			}
 			//System.out.println("END Parse Regex");
 			return root;
