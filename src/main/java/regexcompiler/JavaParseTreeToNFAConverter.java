@@ -65,6 +65,9 @@ public class JavaParseTreeToNFAConverter extends ParseTreeToNFAConverter {
 
 	@Override
 	public NFAGraph createBaseCaseSymbol(String symbol) {
+		if (symbol.isEmpty()) {
+			return createBaseCaseEmptyString();
+		}
 		TransitionLabelParserRecursive tlpr = new TransitionLabelParserRecursive(symbol);
 		TransitionLabel transitionLabel = tlpr.parseTransitionLabel();
 		NFAGraph m = new NFAGraph();
