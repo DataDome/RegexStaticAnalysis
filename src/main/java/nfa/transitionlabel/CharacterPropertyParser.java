@@ -21,12 +21,6 @@ import util.RangeSet.Range;
 
 public class CharacterPropertyParser {
 
-	private final String FILE_PATH = "../data/";
-	
-	private final String FILE_NAME = "predef_ranges.txt";
-
-	private final String FILE;
-	
 	public static final int MIN_16UNICODE = 0;
 	public static final int MAX_16UNICODE = 65536;
 	
@@ -36,29 +30,16 @@ public class CharacterPropertyParser {
 		this.index = index;
 	}
 	
-	boolean dataRead;
-	private final HashMap<String, HashMap<String, RangeSet>> prefixToSuffixesToRanges;
-	private final HashSet<String> caseInsensitivePrefixes;
-	private final HashSet<String> caseInsensitiveSuffixes;
-	
-	public CharacterPropertyParser(String regex, int index) {
-		URL binUrl = CharacterPropertyParser.class.getClassLoader().getResource("");
-		String binAbsolutePath = binUrl.getPath();
-		this.FILE = binAbsolutePath + FILE_PATH + FILE_NAME;
+	private static final HashMap<String, HashMap<String, RangeSet>> prefixToSuffixesToRanges = new HashMap<>();
+	private static final HashSet<String> caseInsensitivePrefixes = new HashSet<>();
+	private static final HashSet<String> caseInsensitiveSuffixes = new HashSet<>();
 
-		this.prefixToSuffixesToRanges = new HashMap<String, HashMap<String, RangeSet>>();
-		this.caseInsensitivePrefixes = new HashSet<String>();
-		this.caseInsensitiveSuffixes = new HashSet<String>();
-		
-		this.regex = regex; /* only used for exception messages */
-		this.index = index; /* only used for exception messages */
-		dataRead = false;
-	}
-	
-	
-	private void readData() {
+	static {
+		URL binUrl = CharacterPropertyParser.class.getClassLoader().getResource("predef_ranges.txt");
+		String FILE = binUrl.getPath();
 		try {
-			BufferedReader fileReader = new BufferedReader(new FileReader(new File(FILE)));
+
+			BufferedReader fileReader = new BufferedReader(new FileReader(FILE));
 			try {
 				while (fileReader.ready()) {
 					String line = fileReader.readLine();
@@ -136,7 +117,12 @@ public class CharacterPropertyParser {
 			e.printStackTrace();
 		}
 	}
-	
+
+	public CharacterPropertyParser(String regex, int index) {
+		this.regex = regex; /* only used for exception messages */
+		this.index = index; /* only used for exception messages */
+	}
+
 	public RangeSet parseCharacterPropertyIterative(String characterProperty) {
 		RangeSet toReturn = new RangeSet(MIN_16UNICODE, MAX_16UNICODE);
 		/* We first put the Ranges in a separate list, so we only have to union (and so merge) once */
@@ -184,11 +170,6 @@ public class CharacterPropertyParser {
 	}
 	
 	public RangeSet parseCharacterPropertyStored(String characterProperty) {
-		if (!dataRead) {
-			readData();
-			dataRead = true;
-		}
-
 		RangeSet toReturn = null;
 		
 		boolean found = false;
@@ -230,7 +211,6 @@ public class CharacterPropertyParser {
 	
 	private static void testAll() {
 		CharacterPropertyParser cpp = new CharacterPropertyParser("\\p{...}", 3);
-		cpp.readData();
 		for (Map.Entry<String, HashMap<String, RangeSet>> kv : cpp.prefixToSuffixesToRanges.entrySet()) {
 			String prefixOriginal = kv.getKey();
 			List<String> prefixes = new LinkedList<String>();
