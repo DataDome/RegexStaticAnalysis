@@ -592,6 +592,9 @@ public class MyPattern {
 		}
 		
 		public TreeNode parseTerm() {
+			if (currentToken == null) {
+				return new TreeNode(new RegexSymbol("", index));
+			}
 			//System.out.println("Parse Term");
 			TreeNode root;
 			if (currentToken.getTokenType() == TokenType.SUBEXPRESSION) {
