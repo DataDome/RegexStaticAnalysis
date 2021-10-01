@@ -11,17 +11,12 @@ import regexcompiler.ParseTree.TreeNode;
 import regexcompiler.RegexQuantifiableOperator.RegexPlusOperator;
 import regexcompiler.RegexQuantifiableOperator.RegexQuestionMarkOperator;
 import regexcompiler.RegexQuantifiableOperator.RegexStarOperator;
-import nfa.transitionlabel.EpsilonTransitionLabel;
-import regexcompiler.RegexGroup.RegexGroupType;
 
 
 public abstract class ParseTreeToNFAConverter implements NFACreator {
 
 	/* Maps the state in the NFAGraph to the NFAGraph representing the lookaround pattern. */
-	private HashMap<NFAVertexND, NFAGraph> posLookAheadStates;
-	private HashMap<NFAVertexND, NFAGraph> posLookBehindStates;
-	private HashMap<NFAVertexND, NFAGraph> negLookAheadStates;
-	private HashMap<NFAVertexND, NFAGraph> negLookBehindStates;
+	private HashMap<NFAVertexND, NFAGraph> lookaroundStates;
 
 	/* so we can constantly generate distinct state names (so they do not get over written) */
 	private int stateCounter;
@@ -44,15 +39,12 @@ public abstract class ParseTreeToNFAConverter implements NFACreator {
 	protected static final int MAX_REPETITION = Integer.MAX_VALUE;
 
 	protected ParseTreeToNFAConverter() {
-		negLookAheadStates = new HashMap<NFAVertexND, NFAGraph>();
-		negLookBehindStates = new HashMap<NFAVertexND, NFAGraph>();
-		posLookAheadStates = new HashMap<NFAVertexND, NFAGraph>();
-		posLookBehindStates = new HashMap<NFAVertexND, NFAGraph>();
+		lookaroundStates = new HashMap<NFAVertexND, NFAGraph>();
 		stateCounter = 0;
 		lookAroundStateCounter = 0;
 	}
 
-	public NFAGraph convertParseTree(ParseTree parseTree) {
+	public NFAGraph convertParseTree(ParseTree parseTree) throws InterruptedException {
 		
 		TreeNode root = parseTree.getRoot();
 		NFAGraph nfaGraph = dfsBuild(root);
@@ -135,64 +127,33 @@ public abstract class ParseTreeToNFAConverter implements NFACreator {
 			case GROUP:
 				RegexGroup regexGroup = (RegexGroup) regexSubexpression;
 				switch (regexGroup.getGroupType()) {
-				case NORMAL: {
+				case NORMAL:
+				case NONCAPTURING: {
 					TreeNode child = childIterator.next();
 					newNfaGraph = dfsBuild(child);					
 					break;
 				}
-				/* The only difference between these should be where the .* comes */
-				case NEGLOOKAHEAD: {
-					throw new UnsupportedOperationException("Negative Look ahead symbols not supported");
-					/*
-					TreeNode child = childIterator.next();
-					NFAVertexND lookAroundState = nextLookAroundState();
-					newNfaGraph = createBaseCaseLookAround(lookAroundState);
-					NFAGraph lookAroundPatternNFA = dfsBuild(child);
-					lookAroundPatternNFA = joinNFAs(lookAroundPatternNFA, createWildCardStarNFA(regexToken.getIndex()));
-					negLookAheadStates.put(lookAroundState, lookAroundPatternNFA);			
-					break;
-					*/
-				}
-				case NONCAPTURING: {
-					TreeNode child = childIterator.next();
-					newNfaGraph = dfsBuild(child);
-					break;
-				}
-				case NEGLOOKBEHIND: {
-					throw new UnsupportedOperationException("Negative Look behind symbols not supported");
-					/*
-					TreeNode child = childIterator.next();
-					NFAVertexND lookAroundState = nextLookAroundState();
-					newNfaGraph = createBaseCaseLookAround(lookAroundState);
-					NFAGraph lookAroundPatternNFA = dfsBuild(child);
-					lookAroundPatternNFA = joinNFAs(createWildCardStarNFA(regexToken.getIndex()), lookAroundPatternNFA);
-					negLookBehindStates.put(lookAroundState, lookAroundPatternNFA);					
-					break;
-					*/
-				}
+				/* The only difference between these should be where the join comes.
+				   Positive and negative look ahead the same from static analyses point of view. */
+				case NEGLOOKAHEAD:
 				case POSLOOKAHEAD: {
-					throw new UnsupportedOperationException("Positive Look ahead symbols not supported");
-					/*
 					TreeNode child = childIterator.next();
 					NFAVertexND lookAroundState = nextLookAroundState();
 					newNfaGraph = createBaseCaseLookAround(lookAroundState);
 					NFAGraph lookAroundPatternNFA = dfsBuild(child);
 					lookAroundPatternNFA = joinNFAs(lookAroundPatternNFA, createWildCardStarNFA(regexToken.getIndex()));
-					posLookAheadStates.put(lookAroundState, lookAroundPatternNFA);					
+					lookaroundStates.put(lookAroundState, lookAroundPatternNFA);
 					break;
-					*/
 				}
+				case NEGLOOKBEHIND:
 				case POSLOOKBEHIND: {
-					throw new UnsupportedOperationException("Positive Look behind symbols not supported");
-					/*
 					TreeNode child = childIterator.next();
 					NFAVertexND lookAroundState = nextLookAroundState();
 					newNfaGraph = createBaseCaseLookAround(lookAroundState);
 					NFAGraph lookAroundPatternNFA = dfsBuild(child);
 					lookAroundPatternNFA = joinNFAs(createWildCardStarNFA(regexToken.getIndex()), lookAroundPatternNFA);
-					posLookBehindStates.put(lookAroundState, lookAroundPatternNFA);					
+					lookaroundStates.put(lookAroundState, lookAroundPatternNFA);
 					break;
-					*/
 				}
 				default:
 					throw new RuntimeException("Unknown Group type.");
@@ -231,82 +192,65 @@ public abstract class ParseTreeToNFAConverter implements NFACreator {
 		return starNFA(wildCardStar, new RegexQuantifiableOperator.RegexStarOperator(QuantifierType.GREEDY, index));
 	}
 
-	private NFAGraph performLookAroundIntersection(NFAGraph nfaGraph) {
-		//System.out.println("Negative Look ahead states:\t" + negLookAheadStates);
-		//System.out.println("Negative look behind states:\t" + negLookBehindStates);
-		//System.out.println("Positive look ahead states:\t" + posLookAheadStates);
-		//System.out.println("Positive look behind states:\t" + posLookBehindStates);
-
-		NFAGraph intersectedGraph = nfaGraph.copy();
+	private NFAGraph performLookAroundIntersection(NFAGraph nfaGraph) throws InterruptedException {
+		NFAGraph intersectedGraph = nfaGraph;
 
 		/* Positive look ahead intersection */
-		for (Map.Entry<NFAVertexND, NFAGraph> kv : posLookAheadStates.entrySet()) {
+		for (Map.Entry<NFAVertexND, NFAGraph> kv : lookaroundStates.entrySet()) {
 			NFAVertexND lookAroundState = kv.getKey();
 			NFAGraph lookAroundNFA = kv.getValue();
-			intersectedGraph = performPositiveLookAheadIntersection(intersectedGraph, lookAroundState, lookAroundNFA);
+			intersectedGraph = joinNFAs(intersectedGraph, performLookAheadIntersection(nfaGraph.copy(), lookAroundState, lookAroundNFA));
 		}
 
 		return intersectedGraph;
 
 	}
 
-	private NFAGraph performPositiveLookAheadIntersection(NFAGraph nfa, NFAVertexND lookAroundState, NFAGraph lookAroundNFA) {	
+	private NFAGraph performLookAheadIntersection(NFAGraph nfa, NFAVertexND lookAroundState, NFAGraph lookAroundNFA) throws InterruptedException {
 		NFAGraph intersectedNFA = nfa.copy();
-		try {	
-			NFAVertexND oldInitialState = intersectedNFA.getInitialState();
-			intersectedNFA.setInitialState(lookAroundState);
-			/* Trim away states that cannot be affected by the lookAround */
-			HashSet<NFAVertexND> trimmedStates = new HashSet<NFAVertexND>();
-			intersectedNFA = NFAAnalysisTools.makeTrimFromStart(intersectedNFA);
-			for (NFAVertexND v : nfa.vertexSet()) {
-				if (!intersectedNFA.containsVertex(v)) {
-					trimmedStates.add(v);
-				}
+		NFAVertexND oldInitialState = intersectedNFA.getInitialState();
+		intersectedNFA.setInitialState(lookAroundState);
+		/* Trim away states that cannot be affected by the lookAround */
+		HashSet<NFAVertexND> trimmedStates = new HashSet<NFAVertexND>();
+		intersectedNFA = NFAAnalysisTools.makeTrimFromStart(intersectedNFA);
+		for (NFAVertexND v : nfa.vertexSet()) {
+			if (!intersectedNFA.containsVertex(v)) {
+				trimmedStates.add(v);
 			}
-			//System.out.println(nfa);
-			//System.out.println(intersectedNFA);
-			//System.out.println("Trimmed states: " + trimmedStates);
+		}
 
-			intersectedNFA = NFAAnalysisTools.productConstructionAFB(intersectedNFA, lookAroundNFA);
+		intersectedNFA = NFAAnalysisTools.productConstructionAFB(intersectedNFA, lookAroundNFA);
 
-			/* Flatten the intersection */
-			intersectedNFA = NFAAnalyserFlattening.flattenNFA(intersectedNFA);
+		/* Flatten the intersection */
+		intersectedNFA = NFAAnalyserFlattening.flattenNFA(intersectedNFA);
 
-			/* Put trimmed states back and connect them */
-			Set<NFAVertexND> intersectionVertices = intersectedNFA.vertexSet();
-			for (NFAVertexND v : trimmedStates) {
-				intersectedNFA.addVertex(v);
-			}
-			/* Add the edges of the trimmed states */
-			for (NFAVertexND v : trimmedStates) {
-				for (NFAEdge e : nfa.outgoingEdgesOf(v)) {
-					NFAVertexND target = e.getTargetVertex();
-					if (trimmedStates.contains(target)) {
-						NFAEdge newEdge = new NFAEdge(v, target, e.getTransitionLabel());
-						intersectedNFA.addEdge(newEdge);
-					} else {
-						for (NFAVertexND intersectionVertex : intersectionVertices) {
-							if (intersectionVertex.getStateByDimension(1).equals(target)) {
-								NFAEdge newEdge = new NFAEdge(v, intersectionVertex, e.getTransitionLabel());
-								intersectedNFA.addEdge(newEdge);
-							}
+		/* Put trimmed states back and connect them */
+		Set<NFAVertexND> intersectionVertices = intersectedNFA.vertexSet();
+		for (NFAVertexND v : trimmedStates) {
+			intersectedNFA.addVertex(v);
+		}
+		/* Add the edges of the trimmed states */
+		for (NFAVertexND v : trimmedStates) {
+			for (NFAEdge e : nfa.outgoingEdgesOf(v)) {
+				NFAVertexND target = e.getTargetVertex();
+				if (trimmedStates.contains(target)) {
+					NFAEdge newEdge = new NFAEdge(v, target, e.getTransitionLabel());
+					intersectedNFA.addEdge(newEdge);
+				} else {
+					for (NFAVertexND intersectionVertex : intersectionVertices) {
+						if (intersectionVertex.getStateByDimension(1).equals(target)) {
+							NFAEdge newEdge = new NFAEdge(v, intersectionVertex, e.getTransitionLabel());
+							intersectedNFA.addEdge(newEdge);
 						}
 					}
 				}
 			}
+		}
 
-			for (NFAVertexND v : intersectedNFA.vertexSet()) {
-				if (v.getStateByDimension(1).equals(oldInitialState)) {
-					intersectedNFA.setInitialState(v);
-				}
+		for (NFAVertexND v : intersectedNFA.vertexSet()) {
+			if (v.getStateByDimension(1).equals(oldInitialState)) {
+				intersectedNFA.setInitialState(v);
 			}
-
-			//System.out.println(intersectedNFA);
-
-		} catch (InterruptedException ie) {
-			ie.printStackTrace();
-			/* TODO pass this exception up */
-			System.exit(0);
 		}
 
 		return intersectedNFA;
