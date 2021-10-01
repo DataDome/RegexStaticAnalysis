@@ -606,8 +606,7 @@ public class MyPattern {
 				}
 				
 			} else if (currentToken.getTokenType() == TokenType.ANCHOR) {
-				RegexAnchor regexAnchorToken = (RegexAnchor) currentToken;
-				throw new UnimplementedFunctionalityException("Anchor at invalid position: " + regexAnchorToken.getAnchorType() + " at " + regexAnchorToken.getIndex());
+				return new TreeNode(new RegexSymbol("", index));
 			} else {
 				throw new RuntimeException("Unknown token type: " + currentToken.getTokenType());
 			}
