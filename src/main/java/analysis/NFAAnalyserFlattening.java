@@ -21,28 +21,18 @@ import nfa.transitionlabel.EpsilonTransitionLabel;
 
 public class NFAAnalyserFlattening extends NFAAnalyser {
 
-	public NFAAnalyserFlattening(PriorityRemovalStrategy priorityRemovalStrategy) {
-		super(priorityRemovalStrategy);
+	public NFAAnalyserFlattening(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity) {
+		super(priorityRemovalStrategy, maxComplexity);
 	}
 
 	@Override
-	protected EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM) throws InterruptedException {
+	protected EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM) {
 		NFAGraph flatGraph = flattenNFA(originalM);
 		
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(flatGraph, maxComplexity);
+		if (sccsInFlat == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
 		}
-		//flatGraph = NFAAnalysisTools.makeTrim(flatGraph);
-
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
-		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(flatGraph);
-
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}	
 
 		EdaAnalysisResults toReturn = new EdaAnalysisResultsNoEda(originalM);
 		/* We set the priorityremoval strategy here, so that the caller know that priorities were ignored */
@@ -51,10 +41,7 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 		/* Testing for parallel edges in scc in merged graph */
 		toReturn = edaTestCaseParallel(originalM, sccsInFlat);
 		toReturn.setPriorityRemovalStrategy(PriorityRemovalStrategy.IGNORE);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
+
 		if (toReturn.edaCase != EdaCases.NO_EDA) {
 			return toReturn;
 		}
@@ -65,35 +52,20 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 	}
 	
 	@Override
-	protected EdaAnalysisResults calculateEdaUnprioritisedAnalysisResults(NFAGraph originalM) throws InterruptedException {	
+	protected EdaAnalysisResults calculateEdaUnprioritisedAnalysisResults(NFAGraph originalM) {	
 		NFAGraph flatGraph = flattenNFA(originalM);
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		EdaAnalysisResults toReturn = edaUnprioritisedAnalysis(flatGraph, maxComplexity);
+		if (toReturn == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
 		}
-		//flatGraph = NFAAnalysisTools.makeTrim(flatGraph);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		EdaAnalysisResults toReturn = new EdaAnalysisResultsNoEda(originalM);
-		toReturn = edaUnprioritisedAnalysis(flatGraph);
 		toReturn.setPriorityRemovalStrategy(PriorityRemovalStrategy.UNPRIORITISE);
 		return toReturn;
 	}
 
 	@Override
-	protected IdaAnalysisResults calculateIdaAnalysisResults(NFAGraph originalM)
-			throws InterruptedException {
+	protected IdaAnalysisResults calculateIdaAnalysisResults(NFAGraph originalM) {
 
 		NFAGraph flatGraph = flattenNFA(originalM);
-
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		//flatGraph = NFAAnalysisTools.makeTrim(flatGraph);
-
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
 
 		IdaAnalysisResults toReturn = new IdaAnalysisResultsNoIda(originalM);
 		toReturn.setPriorityRemovalStrategy(PriorityRemovalStrategy.IGNORE);
@@ -106,64 +78,38 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 	}
 	
 	@Override
-	protected IdaAnalysisResults calculateIdaUnprioritisedAnalysisResults(NFAGraph originalM) throws InterruptedException {
+	protected IdaAnalysisResults calculateIdaUnprioritisedAnalysisResults(NFAGraph originalM) {
 		NFAGraph flatGraph = flattenNFA(originalM);
 
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
-		//flatGraph = NFAAnalysisTools.makeTrim(flatGraph);
-
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-
-		IdaAnalysisResults toReturn = new IdaAnalysisResultsNoIda(originalM);
-		toReturn = idaUnprioritisedAnalysis(flatGraph);
+		IdaAnalysisResults toReturn = idaUnprioritisedAnalysis(flatGraph);
 
 
 		toReturn.setPriorityRemovalStrategy(PriorityRemovalStrategy.UNPRIORITISE);
 		return toReturn;
 	}
 
-	public static NFAGraph flattenNFA2(NFAGraph m) throws InterruptedException {
+	public static NFAGraph flattenNFA2(NFAGraph m) {
 		NFAGraph flatGraph = new NFAGraph();
 		/* Adding the vertices */
 		for (NFAVertexND v : m.vertexSet()) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			flatGraph.addVertex(v);
 		}
 
 		flatGraph.setInitialState(m.getInitialState());
 		for (NFAVertexND v : m.getAcceptingStates()) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			flatGraph.addAcceptingState(v);
 		}
 
 		/* Adding the non-epsilon edges */
 		for (NFAEdge e : m.edgeSet()) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			if (!e.getIsEpsilonTransition()) {
 				flatGraph.addEdge(e);
 			}
 		}
 
 		for (NFAVertexND source : m.vertexSet()) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			HashMap<NFAVertexND, Integer> numWalksMap = numWalksFrom(m, source);
 			for (Map.Entry<NFAVertexND, Integer> kv : numWalksMap.entrySet()) {
-				if (Thread.currentThread().isInterrupted()) {
-					throw new InterruptedException();
-				}
 				NFAVertexND destination = kv.getKey();
 				int weight = kv.getValue();
 				if (weight > 0) {
@@ -181,7 +127,7 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 		return flatGraph;
 	}
 
-	public static NFAGraph flattenNFA(NFAGraph m) throws InterruptedException {
+	public static NFAGraph flattenNFA(NFAGraph m) {
 		NFAGraph flatGraph = new NFAGraph();
 
 		NFAVertexND mInitialState = m.getInitialState();
@@ -191,9 +137,6 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 
 		/* Adding the non-epsilon edges and their vertices */
 		for (NFAEdge e : m.edgeSet()) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			if (!e.getIsEpsilonTransition()) {
 				NFAVertexND sourceVertex = e.getSourceVertex();
 				NFAVertexND targetVertex = e.getTargetVertex();
@@ -206,10 +149,7 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 
 				flatGraph.addEdge(e);
 
-				if (!searchFromVertices.contains(targetVertex)) {
-					searchFromVertices.add(targetVertex);
-				}
-
+				searchFromVertices.add(targetVertex);
 			}
 		}
 		
@@ -222,9 +162,6 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 
 		/* Adding the accepting states */
 		for (NFAVertexND v : m.getAcceptingStates()) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			if (!flatGraph.containsVertex(v)) {
 				flatGraph.addVertex(v);
 			}
@@ -232,15 +169,9 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 		}
 
 		for (NFAVertexND sourceState : searchFromVertices) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			LinkedList<NFAVertexND> reachableFromSource = dfsFlatten(m,	sourceState);
 			int priorityCounter = 1;
 			for (NFAVertexND targetState : reachableFromSource) {
-				if (Thread.currentThread().isInterrupted()) {
-					throw new InterruptedException();
-				}
 				if (!sourceState.equals(targetState)) {
 					NFAEdge newEdge = new NFAEdge(sourceState, targetState,	new EpsilonTransitionLabel("ε" + priorityCounter));
 					flatGraph.addEdge(newEdge);
@@ -252,7 +183,7 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 		return flatGraph;
 	}
 
-	public static LinkedList<NFAVertexND> dfsFlatten(NFAGraph m, NFAVertexND startVertex) throws InterruptedException {
+	public static LinkedList<NFAVertexND> dfsFlatten(NFAGraph m, NFAVertexND startVertex) {
 		LinkedList<NFAVertexND> endVertices = new LinkedList<NFAVertexND>();
 		dfsFlatten(m, startVertex, new HashSet<NFAEdge>(), endVertices);
 		return endVertices;
@@ -262,11 +193,7 @@ public class NFAAnalyserFlattening extends NFAAnalyser {
 	 * Assumes one start and accept state and either epsilon transitions, or a
 	 * symbol transitions from each state
 	 */
-	private static void dfsFlatten(NFAGraph m, NFAVertexND currentVertex, HashSet<NFAEdge> visitedEdges, LinkedList<NFAVertexND> endVertices) throws InterruptedException {
-		if (Thread.currentThread().isInterrupted()) {
-			throw new InterruptedException();
-		}
-
+	private static void dfsFlatten(NFAGraph m, NFAVertexND currentVertex, HashSet<NFAEdge> visitedEdges, LinkedList<NFAVertexND> endVertices) {
 		Set<NFAEdge> outgoingEdges = m.outgoingEdgesOf(currentVertex);
 		if (!outgoingEdges.isEmpty()) {
 			NFAEdge edge = outgoingEdges.iterator().next();

@@ -95,7 +95,7 @@ public class NFAAnalysisTools {
 		return mohriFilter;
 	}
 
-	public static NFAGraph productConstructionAFB(NFAGraph a, NFAGraph b) throws InterruptedException {
+	public static NFAGraph productConstructionAFB(NFAGraph a, NFAGraph b) {
 		NFAGraph m1 = a.copy();
 		NFAGraph m2 = b.copy();
 		NFAGraph f = NFAAnalysisTools.createFilter();
@@ -115,11 +115,11 @@ public class NFAAnalysisTools {
 	 *            The NFA to get the product construction of.
 	 * @return The NFA representing the product construction.
 	 */
-	public static NFAGraph productConstructionAFA(NFAGraph m) throws InterruptedException {		
+	public static NFAGraph productConstructionAFA(NFAGraph m) {		
 		return NFAAnalysisTools.productConstructionAFB(m, m);
 	}
 	
-	public static NFAGraph productConstructionAFAFA(NFAGraph m) throws InterruptedException {
+	public static NFAGraph productConstructionAFAFA(NFAGraph m) {
 		NFAGraph m1 = m.copy();
 		NFAGraph m2 = m.copy();
 		NFAGraph f = NFAAnalysisTools.createFilter();
@@ -140,7 +140,7 @@ public class NFAAnalysisTools {
 		return afafa;
 	}
 
-	public static NFAGraph productConstruction(NFAGraph m1, NFAGraph m2, HashMap<NFAEdge, TransitionLabel> originalWords) throws InterruptedException {
+	public static NFAGraph productConstruction(NFAGraph m1, NFAGraph m2, HashMap<NFAEdge, TransitionLabel> originalWords) {
 		NFAGraph productConstruction = new NFAGraph();
 
 		NFAVertexND m1SourceState, m2SourceState;
@@ -158,9 +158,6 @@ public class NFAAnalysisTools {
 
 		productConstruction.setInitialState(firstVertex);
 		while (!toVisit.isEmpty()) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
 			NFAVertexND sourceVertex = toVisit.poll();
 			m1SourceState = sourceVertex.getStateByDimensionRange(1, 1 + m1Dimensions);
 			m2SourceState = sourceVertex.getStateByDimensionRange(1 + m1Dimensions, 1 + m1Dimensions + m2Dimensions);
@@ -170,10 +167,6 @@ public class NFAAnalysisTools {
 			}
 			
 			for (NFAEdge currentM1Edge : m1.outgoingEdgesOf(m1SourceState)) {
-				if (Thread.currentThread().isInterrupted()) {
-					throw new InterruptedException();
-				}
-
 				int m1NumParallel = currentM1Edge.getNumParallel();
 
 				NFAVertexND m1TargetState = currentM1Edge.getTargetVertex();
@@ -186,9 +179,6 @@ public class NFAAnalysisTools {
 				}
 				
 				for (NFAEdge currentM2Edge : m2.outgoingEdgesOf(m2SourceState)) {
-					if (Thread.currentThread().isInterrupted()) {
-						throw new InterruptedException();
-					}
 					if (!currentM2Edge.isTransitionFor(word)) {
 						/* current edge can't handle word */
 						continue;
@@ -241,7 +231,7 @@ public class NFAAnalysisTools {
 	}
 
 	/* Trims away states not reachable form start */
-	public static NFAGraph makeTrimFromStart(NFAGraph m)  throws InterruptedException {
+	public static NFAGraph makeTrimFromStart(NFAGraph m)  {
 		NFAGraph trimmed = m.copy();
 		NFAVertexND mInitialVertex = m.getInitialState();
 		Set<NFAVertexND> vSet = m.vertexSet();
@@ -275,19 +265,12 @@ public class NFAAnalysisTools {
 	 *            The NFA graph to remove all useless states from.
 	 * @return The trimmed graph.
 	 */
-	public static NFAGraph makeTrimAlternative(NFAGraph m) throws InterruptedException {
+	public static NFAGraph makeTrimAlternative(NFAGraph m) {
 		NFAGraph trimmed = m.copy();
 		Set<NFAVertexND> vSet = m.vertexSet();
 		LinkedList<NFAVertexND> toRemove = new LinkedList<NFAVertexND>();
-		HashSet<NFAVertexND> usefulStates = new HashSet<NFAVertexND>();
-		for (NFAVertexND acceptingState : m.getAcceptingStates()) {
-			usefulStates.add(acceptingState);
-		}
+		HashSet<NFAVertexND> usefulStates = new HashSet<NFAVertexND>(m.getAcceptingStates());
 		for (NFAVertexND currentVertex : vSet) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new InterruptedException();
-			}
-			
 			if (!NFAAnalysisTools.makeTrimIsUseful(trimmed, currentVertex, new HashSet<NFAVertexND>(), usefulStates)) {
 				/* We do not want to remove the initial state */
 				if (!m.getInitialState().equals(currentVertex)) {
@@ -341,7 +324,7 @@ public class NFAAnalysisTools {
 		return result;
 	}
 	
-	public static NFAGraph makeTrimUPNFA(NFAGraph m, NFAGraph upnfa) throws InterruptedException {
+	public static NFAGraph makeTrimUPNFA(NFAGraph m, NFAGraph upnfa) {
 		HashSet<NFAVertexND> usefulStates = new HashSet<NFAVertexND>();
 		
 		for (NFAVertexND v : upnfa.vertexSet()) {
@@ -366,7 +349,7 @@ public class NFAAnalysisTools {
 		return trimmedUPNFA;
 	}
 	
-	public static boolean upNFAStateIsUseful(NFAGraph m, NFAGraph upnfa, UPNFAState upNFAState) throws InterruptedException {	
+	public static boolean upNFAStateIsUseful(NFAGraph m, NFAGraph upnfa, UPNFAState upNFAState) {
 		HashSet<TransitionLabel> alphabet = new HashSet<TransitionLabel>();
 		alphabet.add(CharacterClassTransitionLabel.wildcardLabel());
 		HashSet<NFAVertexND> P = (HashSet<NFAVertexND>) upNFAState.getP();
@@ -389,8 +372,7 @@ public class NFAAnalysisTools {
 		} else {
 			Iterator<NFAVertexND> i0 = P.iterator();
 			NFAVertexND p = i0.next();
-			HashSet<NFAVertexND> reachableFromStart = new HashSet<NFAVertexND>();
-			reachableFromStart.addAll(P);
+			HashSet<NFAVertexND> reachableFromStart = new HashSet<NFAVertexND>(P);
 			NFAGraph intersectionDfa = NFAAnalysisTools.determinize(m, reachableFromStart, alphabet);
 			intersectionDfa = complementDfa(intersectionDfa);
 			
@@ -443,9 +425,8 @@ public class NFAAnalysisTools {
 	 * @param m
 	 *            The NFA graph to remove all useless states from.
 	 * @return The trimmed graph.
-	 * @throws InterruptedException 
 	 */
-	public static NFAGraph makeTrim(NFAGraph m) throws InterruptedException {
+	public static NFAGraph makeTrim(NFAGraph m) {
 		NFAGraph trimmed = m.copy();
 		NFAGraph reversedGraph = m.reverse();
 
@@ -463,18 +444,12 @@ public class NFAAnalysisTools {
 		return trimmed;
 	}
 	
-	private static HashSet<NFAVertexND> makeTrimReachable(NFAGraph reversedGraph, Set<NFAVertexND> defaultUsefulStates) throws InterruptedException {
+	private static HashSet<NFAVertexND> makeTrimReachable(NFAGraph reversedGraph, Set<NFAVertexND> defaultUsefulStates) {
 		
 		HashSet<NFAVertexND> usefulStates = new HashSet<NFAVertexND>();
-		LinkedList<NFAVertexND> toVisit = new LinkedList<NFAVertexND>();
+		LinkedList<NFAVertexND> toVisit = new LinkedList<NFAVertexND>(defaultUsefulStates);
 
-		for (NFAVertexND defaultUsefulState : defaultUsefulStates) {
-			toVisit.add(defaultUsefulState);
-		}
 		while (!toVisit.isEmpty()) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			NFAVertexND currentVertex = toVisit.pop();
 			usefulStates.add(currentVertex);
 			for (NFAEdge outGoingEdge : reversedGraph.outgoingEdgesOf(currentVertex)) {
@@ -527,33 +502,27 @@ public class NFAAnalysisTools {
 	 * 
 	 * @param m
 	 *            The NFA graph to find the strongly connected components in.
-	 * @return A list containing all the strongly connected components.
-	 * @throws InterruptedException 
+	 * @param maxComplexity
+	 * 			  The maximum complexity to compute
+	 * @return A list containing all the strongly connected components or null when graph is too complex.
 	 */
-	public static LinkedList<NFAGraph> getStronglyConnectedComponents(NFAGraph m) throws InterruptedException {
+	public static LinkedList<NFAGraph> getStronglyConnectedComponents(NFAGraph m, int maxComplexity) {
 		KosarajuStrongConnectivityInspector<NFAVertexND, NFAEdge> sci = new KosarajuStrongConnectivityInspector<NFAVertexND, NFAEdge>(m);
 		List<Graph<NFAVertexND, NFAEdge>> sccs = sci.getStronglyConnectedComponents();
+		if (sccs.size() > maxComplexity) {
+			return null;
+		}
 		LinkedList<NFAGraph> sccNFAs = new LinkedList<NFAGraph>();
 
 		for (Graph<NFAVertexND, NFAEdge> scc : sccs) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
-
 			/* scc's consisting of no edges are irrelevant for our purpose */
 			if (scc.edgeSet().size() > 0) {
 
 				NFAGraph currentNFAG = new NFAGraph();
 				for (NFAVertexND v : scc.vertexSet()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					currentNFAG.addVertex(v);
 				}
 				for (NFAEdge e : scc.edgeSet()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					currentNFAG.addEdge(e);
 				}
 
@@ -584,11 +553,12 @@ public class NFAAnalysisTools {
 	 * 
 	 * @param m
 	 *            The NFA graph to find the strongly connected components in.
+	 * @param maxComplexity
+	 * 			  The maximum complexity to compute
 	 * @return A list containing all the strongly connected components, with
-	 *         only epsilon transitions between the states.
-	 * @throws InterruptedException 
+	 *         only epsilon transitions between the states, or null when graph is too complex.
 	 */
-	public static LinkedList<NFAGraph> getEpsilonStronglyConnectedComponents(NFAGraph m) throws InterruptedException {
+	public static LinkedList<NFAGraph> getEpsilonStronglyConnectedComponents(NFAGraph m, int maxComplexity) {
 		NFAGraph epsilonGraph = m.copy();
 
 		/* iterating over m's edge set so we can modify epsilonGraph's edges */
@@ -599,7 +569,7 @@ public class NFAAnalysisTools {
 			}
 		}
 
-		return getStronglyConnectedComponents(epsilonGraph);
+		return getStronglyConnectedComponents(epsilonGraph, maxComplexity);
 	}
 
 	/**
@@ -612,18 +582,22 @@ public class NFAAnalysisTools {
 	 *            True if only epsilon strongly connected components should be
 	 *            merged, false if all strongly connected components should be
 	 *            merged.
+	 * @param maxComplexity
+	 * 			  The maximum complexity to compute
 	 * @return A HashMap containing the merged states as key and the original
-	 *         escc as value.
-	 * @throws InterruptedException 
+	 *         escc as value, ot null when graph is too complex.
 	 */
-	public static Map<NFAVertexND, NFAGraph> mergeStronglyConnectedComponents(NFAGraph m, boolean epsilon) throws InterruptedException {
+	public static Map<NFAVertexND, NFAGraph> mergeStronglyConnectedComponents(NFAGraph m, boolean epsilon, int maxComplexity) {
 		Map<NFAVertexND, NFAGraph> mergedStates = new HashMap<NFAVertexND, NFAGraph>();
 
 		LinkedList<NFAGraph> sccs;
 		if (epsilon) {
-			sccs = getEpsilonStronglyConnectedComponents(m);
+			sccs = getEpsilonStronglyConnectedComponents(m, maxComplexity);
 		} else {
-			sccs = getStronglyConnectedComponents(m);
+			sccs = getStronglyConnectedComponents(m, maxComplexity);
+		}
+		if (sccs == null) {
+			return null;
 		}
 		for (NFAGraph scc : sccs) {
 			NFAVertexND mergedState = null;
@@ -631,9 +605,6 @@ public class NFAAnalysisTools {
 			boolean isInitial = false;
 			LinkedList<NFAEdge> edgesToRestore = new LinkedList<NFAEdge>();
 			for (NFAVertexND v : scc.vertexSet()) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				if (mergedState == null) {
 					mergedState = new NFAVertexND(v.getStateNumberByDimension(1));
 				}
@@ -836,7 +807,7 @@ public class NFAAnalysisTools {
 		return visited;
 	}
 	
-	public static NFAGraph determinize(NFAGraph input, Set<NFAVertexND> reachableFromStart, Set<TransitionLabel> alphabet) throws InterruptedException {
+	public static NFAGraph determinize(NFAGraph input, Set<NFAVertexND> reachableFromStart, Set<TransitionLabel> alphabet) {
 		NFAGraph dfa = new NFAGraph();
 		
 		/* http://www.cse.unsw.edu.au/~rvg/pub/nfadfa.pdf */
@@ -849,9 +820,6 @@ public class NFAAnalysisTools {
 		StringBuilder labelBuilder = new StringBuilder();
 		Iterator<NFAVertexND> i0 = sortedReachableFromStart.iterator();
 		while (i0.hasNext()) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			NFAVertexND startState = i0.next();
 			List<String> subStates = startState.getStates();
 			if (subStates.size() == 1) {
@@ -887,9 +855,6 @@ public class NFAAnalysisTools {
 		dfa.addVertex(dfaStartState);
 		dfa.setInitialState(dfaStartState);
 		for (NFAVertexND i : reachableFromStart) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			if (input.isAcceptingState(i)) {
 				dfa.addAcceptingState(dfaStartState);
 			}
@@ -900,22 +865,13 @@ public class NFAAnalysisTools {
 		
 		
 		while (!toVisit.isEmpty()) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
-			
+
 			NFAVertexND P = toVisit.removeLast();
 			/* with the label in TransitionLabel, P can get to the states in HashSet<NFAvertexND> */
 			HashMap<TransitionLabel, HashSet<NFAVertexND>> newStates = new HashMap<TransitionLabel, HashSet<NFAVertexND>>();
 			Set<NFAVertexND> subStates = dfaStateToSubStatesMap.get(P);
 			for (NFAVertexND currentSubState : subStates) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				for (NFAEdge e : input.outgoingEdgesOf(currentSubState)) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					if (!e.getIsEpsilonTransition()) {
 						TransitionLabel label = e.getTransitionLabel();
 						NFAVertexND targetState = e.getTargetVertex();
@@ -937,9 +893,6 @@ public class NFAAnalysisTools {
 							/* Copying entries, to avoid concurrent modification errors */
 							Set<Map.Entry<TransitionLabel, HashSet<NFAVertexND>>> entries = new HashSet<Map.Entry<TransitionLabel, HashSet<NFAVertexND>>>(newStates.entrySet());
 							for (Map.Entry<TransitionLabel, HashSet<NFAVertexND>> kv : entries) {
-								if (isInterrupted()) {
-									throw new InterruptedException();
-								}
 								TransitionLabel tl1 = kv.getKey();
 							
 								TransitionLabel intersection = tl1.intersection(label);
@@ -983,15 +936,9 @@ public class NFAAnalysisTools {
 			//System.out.println(P + "\t\t" + newStates);
 			/* Finding all the ranges in the alphabet not accounted for */
 			for (TransitionLabel s : alphabet) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				TransitionLabel toEmptyState = s;
 				/* for each range accounted for, remove it from the current alphabet range */
 				for (TransitionLabel tl : newStates.keySet()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					toEmptyState = toEmptyState.intersection(tl.complement());
 					if (toEmptyState.isEmpty()) {
 						break;
@@ -1024,16 +971,10 @@ public class NFAAnalysisTools {
 			}*/
 			
 			for (Map.Entry<TransitionLabel, HashSet<NFAVertexND>> kv : newStates.entrySet()) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				TransitionLabel label = kv.getKey();
 				HashSet<NFAVertexND> reachableViaSymbolEpsilon = new HashSet<NFAVertexND>();
 				
 				for (NFAVertexND v : kv.getValue()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					reachableViaSymbolEpsilon.add(v);
 					HashSet<NFAVertexND> reachableViaEpsilon = reachableWithEpsilon(input, v);
 					reachableViaSymbolEpsilon.addAll(reachableViaEpsilon);
@@ -1045,9 +986,6 @@ public class NFAAnalysisTools {
 				labelBuilder = new StringBuilder();
 				Iterator<NFAVertexND> i1 = sortedReachableViaSymbolEpsilon.iterator();
 				while (i1.hasNext()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					NFAVertexND currentSubState = i1.next();
 					List<String> labelSubStates = currentSubState.getStates();
 					if (labelSubStates.size() == 1) {
@@ -1059,9 +997,6 @@ public class NFAAnalysisTools {
 						Iterator<String> i2 = labelSubStates.iterator();
 						labelBuilder.append("(");
 						while (i2.hasNext()) {
-							if (isInterrupted()) {
-								throw new InterruptedException();
-							}
 							String currentLabel = i2.next();
 							labelBuilder.append(currentLabel);
 							if (i2.hasNext()) {

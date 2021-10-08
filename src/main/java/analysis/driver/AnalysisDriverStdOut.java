@@ -48,6 +48,7 @@ public class AnalysisDriverStdOut {
 	private static boolean shouldConstructEdaExploitString;
 	private static boolean shouldTestEdaExploitString;
 	private static boolean shouldConstructIdaExploitString;
+	private static int maxComplexity;
 	private static int timeout;
 	private static boolean timeoutEnabled;
 
@@ -68,6 +69,7 @@ public class AnalysisDriverStdOut {
 		if (timeout > 0) {
 			timeoutEnabled = true;
 		}
+		maxComplexity = analysisSettings.getMaxComplexity();
 
 		int counter = 0;
 		int numAnalysed = 0;
@@ -102,6 +104,7 @@ public class AnalysisDriverStdOut {
 			} else {
 				System.out.println("Timeout:\t\t\tDISABLED");
 			}
+			System.out.println("Max complexity:\t\t\t" + maxComplexity);
 			System.out.println("------------------------");
 		}
 
@@ -134,26 +137,9 @@ public class AnalysisDriverStdOut {
 					}
 					
 					AnalysisRunner ar = new AnalysisRunner(finalPattern, analyser);					
-					
-					final Thread AnalysisRunnerThread = new Thread(ar);
-					Thread sleepThread = new Thread() {
-						public void run() {
-							try {
-								if (timeoutEnabled) {
-									Thread.sleep(timeout * Constants.MILLISECONDS_IN_SECOND);
-									AnalysisRunnerThread.interrupt();
-								}
-							} catch (InterruptedException e) {
-								Thread.currentThread().interrupt();
-							}
-						}
-					};
-					
-					AnalysisRunnerThread.start();
-					sleepThread.start();
-					AnalysisRunnerThread.join();
-					sleepThread.interrupt();
-					
+
+					ar.run();
+
 					NFAGraph analysisGraph;
 					AnalysisResultsType results = ar.getAnalysisResultsType();
 					switch (results) {
@@ -281,15 +267,10 @@ public class AnalysisDriverStdOut {
 						numSafe++;
 						numAnalysed++;
 						break;
-					case TIMEOUT_IN_EDA:
-						System.out.println("TIMEOUT in EDA");
+					case TOO_COMPLEX:
+						System.out.println("TOO COMPLEX");
 						numTimeout++;
 						numTimeoutInEda++;
-						break;
-					case TIMEOUT_IN_IDA:
-						System.out.println("TIMEOUT in IDA");
-						numTimeout++;
-						numTimeoutInIda++;
 						break;
 					case ANALYSIS_FAILED:
 						System.out.println("SKIPPED");
@@ -359,10 +340,10 @@ public class AnalysisDriverStdOut {
 		NFAAnalyser analyser;
 		switch (epsilonLoopRemovalStrategy) {
 		case MERGING:
-			analyser = new NFAAnalyserMerging(priorityRemovalStrategy);
+			analyser = new NFAAnalyserMerging(priorityRemovalStrategy, maxComplexity);
 			break;
 		case FLATTENING:
-			analyser = new NFAAnalyserFlattening(priorityRemovalStrategy);
+			analyser = new NFAAnalyserFlattening(priorityRemovalStrategy, maxComplexity);
 			break;
 		default:
 			throw new RuntimeException("Unknown Strategy: " + epsilonLoopRemovalStrategy);
@@ -574,8 +555,6 @@ public class AnalysisDriverStdOut {
 		@Override
 		public void run() {
 
-			boolean finishedEdaAnalysis = false;
-			boolean finishedIdaAnalysis = false;
 			try {
 				long totalAnalysisStartTime = System.currentTimeMillis();
 				analysisGraph = MyPattern.toNFAGraph(pattern, nfaConstruction);	
@@ -585,19 +564,14 @@ public class AnalysisDriverStdOut {
 				nfaConstructionTime = System.currentTimeMillis() - totalAnalysisStartTime;
 				long edaAnalysisStartTime = System.currentTimeMillis();
 				analysisResultsType = analyser.containsEDA(analysisGraph);
-				if (analysisResultsType != AnalysisResultsType.TIMEOUT_IN_EDA) {
+				if (analysisResultsType != AnalysisResultsType.TOO_COMPLEX) {
 					analysisResults = analyser.getEdaAnalysisResults(analysisGraph);	
 					edaAnalysisTime = System.currentTimeMillis() - edaAnalysisStartTime;
 					totalAnalysisTime += nfaConstructionTime + edaAnalysisTime;
-					finishedEdaAnalysis = true;
 					switch (analysisResultsType) {
 					case EDA:
 						if (shouldConstructEdaExploitString) {
-							try {
-								exploitString = analyser.findEDAExploitString(analysisGraph);
-							} catch (InterruptedException ie) {
-							
-							}
+							exploitString = analyser.findEDAExploitString(analysisGraph);
 						}
 						break;
 					case NO_EDA:
@@ -605,20 +579,15 @@ public class AnalysisDriverStdOut {
 							long idaAnalysisStartTime = System.currentTimeMillis();
 							//System.out.println("AnalysisDriverStdOut:run:1");
 							analysisResultsType = analyser.containsIDA(analysisGraph);
-							if (analysisResultsType != AnalysisResultsType.TIMEOUT_IN_IDA) {
+							if (analysisResultsType != AnalysisResultsType.TOO_COMPLEX) {
 								analysisResults = analyser.getIdaAnalysisResults(analysisGraph);
 								//System.out.println("AnalysisDriverStdOut:run:2");
 								idaAnalysisTime = System.currentTimeMillis() - idaAnalysisStartTime;
 								totalAnalysisTime += idaAnalysisTime;
-								finishedIdaAnalysis = true;
 								switch (analysisResultsType) {
 								case IDA:
 									if (shouldConstructIdaExploitString) {
-										try {
-											exploitString = analyser.findIDAExploitString(analysisGraph);
-										} catch (InterruptedException ie) {
-											
-										}
+										exploitString = analyser.findIDAExploitString(analysisGraph);
 									}
 									break;
 								case NO_IDA:

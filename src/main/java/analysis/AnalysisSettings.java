@@ -69,7 +69,12 @@ public class AnalysisSettings {
 		return timeout;
 	}
 
-	public AnalysisSettings(NFAConstruction nfaConstruction, 
+	private final int maxComplexity;
+	public int getMaxComplexity() {
+		return maxComplexity;
+	}
+
+	public AnalysisSettings(NFAConstruction nfaConstruction,
 					PreprocessingType preprocessingType, 
 					EpsilonLoopRemovalStrategy epsilonLoopRemovalStrategy, 
 					PriorityRemovalStrategy priorityRemovalStrategy, 
@@ -77,7 +82,8 @@ public class AnalysisSettings {
 					boolean shouldConstructEdaExploitString,
 					boolean shouldTestEdaExploitString, 
 					boolean shouldConstructIdaExploitString,
-					int timeout) {
+					int timeout,
+					int maxComplexity) {
 		this.nfaConstruction = nfaConstruction;
 		this.preprocessingType = preprocessingType;
 		this.epsilonLoopRemovalStrategy = epsilonLoopRemovalStrategy;
@@ -87,6 +93,7 @@ public class AnalysisSettings {
 		this.shouldTestEdaExploitString = shouldTestEdaExploitString;
 		this.shouldConstructIdaExploitString = shouldConstructIdaExploitString;
 		this.timeout = timeout;
+		this.maxComplexity = maxComplexity;
 	}
 	
 }

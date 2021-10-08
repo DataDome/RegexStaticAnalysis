@@ -23,11 +23,11 @@ import nfa.NFAVertexND;
  */
 public class NFAAnalyserMerging extends NFAAnalyser {
 	
-	public NFAAnalyserMerging(PriorityRemovalStrategy priorityRemovalStrategy) {
-		super(priorityRemovalStrategy);
+	public NFAAnalyserMerging(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity) {
+		super(priorityRemovalStrategy, maxComplexity);
 	}
 
-	private EdaAnalysisResults testCaseESCC(NFAGraph originalM, LinkedList<NFAGraph> sccsInOriginal, Map<NFAVertexND, NFAGraph> esccs) throws InterruptedException {
+	private EdaAnalysisResults testCaseESCC(NFAGraph originalM, LinkedList<NFAGraph> sccsInOriginal, Map<NFAVertexND, NFAGraph> esccs) {
 
 		/* mapping SCCs to the ESCC's in them */
 		HashMap<NFAGraph, LinkedList<NFAVertexND>> sccToMergedESCCStatesMap = new HashMap<NFAGraph, LinkedList<NFAVertexND>>();
@@ -48,9 +48,6 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 			}
 		}
 		for (NFAGraph currentSCCInOriginal : sccsInOriginal) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			/*
 			 * find esccs in this scc (in merged). The OrDefault lets it return
 			 * an empty list to save a null check
@@ -64,9 +61,6 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 			//LinkedList<NFAVertexND> esscsInCurrentSCC = sccToMergedESCCStatesMap.getOrDefault(currentSCCInOriginal, new LinkedList<NFAVertexND>());
 
 			for (NFAVertexND mergedESCCInSCC : esscsInCurrentSCC) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				NFAGraph currentESCC = esccs.get(mergedESCCInSCC);
 
 				/*
@@ -77,9 +71,6 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 				HashMap<NFAVertexND, NFAEdge> exitStates = new HashMap<NFAVertexND, NFAEdge>();
 
 				for (NFAVertexND v : currentESCC.vertexSet()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					/*
 					 * we defined an entrance/exit edge to still be in the scc
 					 * of the escc
@@ -121,18 +112,12 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 				 */
 
 				for (NFAVertexND start : entranceStates.keySet()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					HashMap<NFAVertexND, Integer> pathsToOtherVertices = NFAAnalysisTools.numWalksFrom(currentESCC, start);
 					/*
 					 * map from other vertex to the number of paths to that
 					 * vertex
 					 */
 					for (Map.Entry<NFAVertexND, Integer> kv : pathsToOtherVertices.entrySet()) {
-						if (isInterrupted()) {
-							throw new InterruptedException();
-						}
 						NFAVertexND p = kv.getKey();
 						/* if the other vertex is an exit vertex */
 						if (exitStates.containsKey(p)) {
@@ -159,35 +144,26 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 	}
 
 	@Override
-	protected EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM) throws InterruptedException {
-		NFAGraph merged = originalM.copy();
-		//merged = NFAAnalysisTools.makeTrim(merged);
-		if (isInterrupted()) {
-			throw new InterruptedException();
+	protected EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM) {
+		LinkedList<NFAGraph> sccsInOriginal = NFAAnalysisTools.getStronglyConnectedComponents(originalM, maxComplexity);
+		if (sccsInOriginal == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
 		}
-		
-		LinkedList<NFAGraph> sccsInOriginal = NFAAnalysisTools.getStronglyConnectedComponents(originalM);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
 
-		Map<NFAVertexND, NFAGraph> esccs = NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true);
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		NFAGraph merged = originalM.copy();
+		Map<NFAVertexND, NFAGraph> esccs = NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity);
+		if (esccs == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
 		}
-		
-		LinkedList<NFAGraph> sccsInMerged = NFAAnalysisTools.getStronglyConnectedComponents(merged);
-		if (isInterrupted()) {
-			throw new InterruptedException();
+
+		LinkedList<NFAGraph> sccsInMerged = NFAAnalysisTools.getStronglyConnectedComponents(merged, maxComplexity);
+		if (sccsInMerged == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
 		}
 
 		EdaAnalysisResults toReturn = new EdaAnalysisResultsNoEda(originalM);
 		/* Testing for parallel edges in scc in merged graph */
 		toReturn = edaTestCaseParallel(originalM, sccsInMerged);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
 		if (toReturn.edaCase != EdaCases.NO_EDA) {
 			return toReturn;
 		}
@@ -197,9 +173,6 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 		toReturn = testCaseESCC(originalM, sccsInOriginal, esccs);
 		toReturn.setPriorityRemovalStrategy(PriorityRemovalStrategy.IGNORE);
 		
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
 		if (toReturn.edaCase != EdaCases.NO_EDA) {
 			return toReturn;
 		}
@@ -212,19 +185,16 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 	}
 	
 	@Override
-	protected EdaAnalysisResults calculateEdaUnprioritisedAnalysisResults(NFAGraph originalM) throws InterruptedException {
+	protected EdaAnalysisResults calculateEdaUnprioritisedAnalysisResults(NFAGraph originalM) {
 		NFAGraph merged = originalM.copy();
-		NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		//merged = NFAAnalysisTools.makeTrim(merged);
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity) == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
 		}
 
-		EdaAnalysisResults toReturn = new EdaAnalysisResultsNoEda(originalM);
-		toReturn = edaUnprioritisedAnalysis(merged);
+		EdaAnalysisResults toReturn = edaUnprioritisedAnalysis(merged, maxComplexity);
+		if (toReturn == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
+		}
 
 		toReturn.setPriorityRemovalStrategy(PriorityRemovalStrategy.UNPRIORITISE);
 		return toReturn;
@@ -232,16 +202,10 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 
 
 	@Override
-	protected IdaAnalysisResults calculateIdaAnalysisResults(NFAGraph originalM) throws InterruptedException {
+	protected IdaAnalysisResults calculateIdaAnalysisResults(NFAGraph originalM) {
 		NFAGraph merged = originalM.copy();
-		NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
-		//merged = NFAAnalysisTools.makeTrim(merged);
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity) == null) {
+			return new TooComplexIdaAnalysisResults(originalM);
 		}
 		
 		IdaAnalysisResults toReturn = new IdaAnalysisResultsNoIda(originalM);
@@ -249,22 +213,19 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 
 		/* Testing for multiple paths in PC */
 		toReturn = idaTestCaseFilter(originalM, merged);
+		if (toReturn == null) {
+			return new TooComplexIdaAnalysisResults(originalM);
+		}
 		toReturn.setPriorityRemovalStrategy(PriorityRemovalStrategy.IGNORE);
 				
 		return toReturn;
 	}
 
 	@Override
-	protected IdaAnalysisResults calculateIdaUnprioritisedAnalysisResults(NFAGraph originalM) throws InterruptedException {
+	protected IdaAnalysisResults calculateIdaUnprioritisedAnalysisResults(NFAGraph originalM) {
 		NFAGraph merged = originalM.copy();
-		NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
-		//merged = NFAAnalysisTools.makeTrim(merged);		
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity) == null) {
+			return new TooComplexIdaAnalysisResults(originalM);
 		}
 
 		IdaAnalysisResults toReturn = new IdaAnalysisResultsNoIda(originalM);

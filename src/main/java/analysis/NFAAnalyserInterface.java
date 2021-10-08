@@ -12,8 +12,7 @@ public interface NFAAnalyserInterface {
 		NO_EDA,
 		IDA,
 		NO_IDA,
-		TIMEOUT_IN_EDA,
-		TIMEOUT_IN_IDA,
+		TOO_COMPLEX,
 		ANALYSIS_FAILED
 		
 	}
@@ -101,6 +100,12 @@ public interface NFAAnalyserInterface {
 			this.endState = endState;
 		}
 	}
+
+	static final class TooComplexEdaAnalysisResults extends EdaAnalysisResults {
+		public TooComplexEdaAnalysisResults(NFAGraph originalGraph) {
+			super(originalGraph, EdaCases.TOO_COMPLEX);
+		}
+	}
 	
 	static final class IdaAnalysisResultsNoIda extends IdaAnalysisResults {
 		
@@ -127,16 +132,22 @@ public interface NFAAnalyserInterface {
 			this.maxPath = maxPath;
 		}
 	}
+
+	static final class TooComplexIdaAnalysisResults extends IdaAnalysisResults {
+		public TooComplexIdaAnalysisResults(NFAGraph originalGraph) {
+			super(originalGraph, IdaCases.TOO_COMPLEX);
+		}
+	}
 	
 	public AnalysisResultsType containsEDA(NFAGraph m);
 	public EdaAnalysisResults getEdaAnalysisResults(NFAGraph m);
 	
-	public ExploitString findEDAExploitString(NFAGraph m) throws InterruptedException;
+	public ExploitString findEDAExploitString(NFAGraph m);
 	
 	public AnalysisResultsType containsIDA(NFAGraph m);
 	public IdaAnalysisResults getIdaAnalysisResults(NFAGraph m);
 	
-	public ExploitString findIDAExploitString(NFAGraph m) throws InterruptedException;
+	public ExploitString findIDAExploitString(NFAGraph m);
 
 
 }

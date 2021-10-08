@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ByteArrayInputStream;
 import java.io.FileReader;
-import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 
 import analysis.AnalysisSettings;
@@ -41,6 +40,7 @@ public class Main {
 	private static final String TEST_EDA_EXPLOIT_STRING_SETTING = "--test-eda-exploit-string";
 	private static final String CONSTRUCT_IDA_EXPLOIT_STRING_SETTING = "--construct-ida-exploit-string";
 	private static final String TIMEOUT_SETTING = "--timeout";
+	private static final String MAX_COMPLEXITY_SETTINGS = "--max-complexity";
 	private static final String FILE_INPUT_SETTING = "--if";
 	private static final String COMMAND_LINE_INPUT_SETTING = "--regex";
 
@@ -56,6 +56,7 @@ public class Main {
 	private static final boolean DEFAULT_TEST_EDA_EXPLOIT_STRING = true;
 	private static final boolean DEFAULT_CONSTRUCT_IDA_EXPLOIT_STRING = true;
 	private static final int DEFAULT_TIMEOUT = 10;
+	private static final int DEFAULT_MAX_COMPLEXITY = Integer.MAX_VALUE;
 
 	private static HashSet<String> commandLineFlags;
 	private static HashMap<String, String> commandLineSettings;
@@ -120,6 +121,7 @@ public class Main {
 
 
 		int timeout = determineTimeoutValue();
+		int maxComplexity = determineMaxComplexity();
 
 		BufferedReader regexesReader = setupRegexesReader(inputType);
 
@@ -133,7 +135,8 @@ public class Main {
 						shouldConstructEdaExploitString,
 						shouldTestEdaExploitString, 
 						shouldConstructIdaExploitString,
-						timeout);		
+						timeout,
+						maxComplexity);
 		AnalysisDriverStdOut.performAnalysis(regexesReader, interfaceSettings, analysisSettings);
 	}
 
@@ -325,6 +328,22 @@ public class Main {
 			}
 		}
 		return DEFAULT_TIMEOUT;
+	}
+
+	private static int determineMaxComplexity() {
+		boolean containsMaxComplexitySetting = commandLineSettings.containsKey(MAX_COMPLEXITY_SETTINGS);
+		if (containsMaxComplexitySetting) {
+			String timeoutValueString = commandLineSettings.get(MAX_COMPLEXITY_SETTINGS);
+			try {
+				int maxComplexityValue = Integer.parseInt(timeoutValueString);
+				return maxComplexityValue;
+			} catch (NumberFormatException nfe) {
+				System.err.println("max complexity should be an integer value.");
+				printUsage();
+				System.exit(0);
+			}
+		}
+		return DEFAULT_MAX_COMPLEXITY;
 	}
 
 	private static BufferedReader setupRegexesReader(InputType inputType) {

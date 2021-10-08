@@ -5,7 +5,7 @@ import analysis.AnalysisSettings.PriorityRemovalStrategy;
 import nfa.NFAGraph;
 
 abstract class EdaAnalysisResults extends AnalysisResults {
-	enum EdaCases {PARALLEL, ESCC, FILTER, NO_EDA}
+	enum EdaCases {PARALLEL, ESCC, FILTER, NO_EDA, TOO_COMPLEX}
 	public final EdaCases edaCase;
 	
 	private PriorityRemovalStrategy priorityRemovalStrategy;

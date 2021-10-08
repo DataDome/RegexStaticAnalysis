@@ -32,43 +32,42 @@ import nfa.transitionlabel.EpsilonTransitionLabel;
 public abstract class NFAAnalyser implements NFAAnalyserInterface {
 	
 	private final int MAX_IDA_DEGREE = Integer.MAX_VALUE;
-	
+
 	private final int MAX_CACHE_SIZE = 5;
-	
+
+	public final int maxComplexity;
+
 	protected final ExploitStringBuilder exploitStringBuilder;
 	protected final PriorityRemovalStrategy priorityRemovalStrategy;
-	public NFAAnalyser(PriorityRemovalStrategy priorityRemovalStrategy) {
+	public NFAAnalyser(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity) {
 		this.exploitStringBuilder = new ExploitStringBuilder();
 		this.priorityRemovalStrategy = priorityRemovalStrategy;
+		this.maxComplexity = maxComplexity;
 	}
 
 	protected Map<NFAGraph, EdaAnalysisResults> edaResultsCache = new HashMap<NFAGraph, EdaAnalysisResults>();
 	protected Map<NFAGraph, IdaAnalysisResults> idaResultsCache = new HashMap<NFAGraph, IdaAnalysisResults>();
 	
-	protected abstract EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM) throws InterruptedException;
+	protected abstract EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM);
 	
-	protected abstract EdaAnalysisResults calculateEdaUnprioritisedAnalysisResults(NFAGraph originalM) throws InterruptedException;
+	protected abstract EdaAnalysisResults calculateEdaUnprioritisedAnalysisResults(NFAGraph originalM);
 	
-	protected abstract IdaAnalysisResults calculateIdaAnalysisResults(NFAGraph originalM) throws InterruptedException;
+	protected abstract IdaAnalysisResults calculateIdaAnalysisResults(NFAGraph originalM);
 	
-	protected abstract IdaAnalysisResults calculateIdaUnprioritisedAnalysisResults(NFAGraph originalM) throws InterruptedException;
+	protected abstract IdaAnalysisResults calculateIdaUnprioritisedAnalysisResults(NFAGraph originalM);
 	
 	@Override
 	public AnalysisResultsType containsIDA(NFAGraph originalM) {
-		IdaAnalysisResults resultsObject;
-		try {
-			resultsObject = (IdaAnalysisResults) searchIdaCache(originalM);
-			switch (resultsObject.idaCase) {
+		IdaAnalysisResults resultsObject = searchIdaCache(originalM);
+		switch (resultsObject.idaCase) {
 			case IDA:
 				return AnalysisResultsType.IDA;
 			case NO_IDA:
 				return AnalysisResultsType.NO_IDA;
+			case TOO_COMPLEX:
+				return AnalysisResultsType.TOO_COMPLEX;
 			default:
 				throw new RuntimeException("Unexpected IDA analysis result: " + resultsObject.idaCase);
-			}
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			return AnalysisResultsType.TIMEOUT_IN_IDA;
 		}
 	}
 
@@ -83,27 +82,20 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 	
 	@Override
 	public AnalysisResultsType containsEDA(NFAGraph originalM) {
-		EdaAnalysisResults resultsObject;
-		try {
+		EdaAnalysisResults resultsObject = searchEdaCache(originalM);
 
-			resultsObject = (EdaAnalysisResults) searchEdaCache(originalM);
-
-			switch (resultsObject.edaCase) {
+		switch (resultsObject.edaCase) {
 			case ESCC:
 			case FILTER:
 			case PARALLEL:
 				return AnalysisResultsType.EDA;
 			case NO_EDA:
 				return AnalysisResultsType.NO_EDA;
+			case TOO_COMPLEX:
+				return AnalysisResultsType.TOO_COMPLEX;
 			default:
 				throw new RuntimeException("Unexpected EDA analysis result: " + resultsObject.edaCase);
-			}
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			return AnalysisResultsType.TIMEOUT_IN_EDA;
 		}
-		
-		
 	}
 
 	@Override
@@ -116,7 +108,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 	}
 	
 
-	protected AnalysisResults searchEdaCache(NFAGraph originalM) throws InterruptedException {
+	protected EdaAnalysisResults searchEdaCache(NFAGraph originalM) {
 		EdaAnalysisResults resultsObject;
 		if (!edaResultsCache.containsKey(originalM)) {
 
@@ -138,14 +130,14 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 			if (edaResultsCache.size() >= MAX_CACHE_SIZE) {
 				edaResultsCache.clear();
 			}
-			edaResultsCache.put(originalM, resultsObject);	
+			edaResultsCache.put(originalM, resultsObject);
 		} else {
 			resultsObject = edaResultsCache.get(originalM);
 		}
 		return resultsObject;
 	}
-	
-	protected AnalysisResults searchIdaCache(NFAGraph originalM) throws InterruptedException {
+
+	protected IdaAnalysisResults searchIdaCache(NFAGraph originalM) {
 		IdaAnalysisResults resultsObject;
 		
 		if (!edaResultsCache.containsKey(originalM)) {
@@ -189,7 +181,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		return resultsObject;
 	}
 	
-	public ExploitString findEDAExploitString(NFAGraph originalM) throws InterruptedException {
+	public ExploitString findEDAExploitString(NFAGraph originalM) {
 		if (edaResultsCache.containsKey(originalM)) {
 			EdaAnalysisResults resultsObject = edaResultsCache.get(originalM);
 			return exploitStringBuilder.buildEdaExploitString(resultsObject);
@@ -199,7 +191,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		
 	}
 	
-	public ExploitString findIDAExploitString(NFAGraph originalM) throws InterruptedException {
+	public ExploitString findIDAExploitString(NFAGraph originalM) {
 		if (idaResultsCache.containsKey(originalM)) {
 			IdaAnalysisResults resultsObject = idaResultsCache.get(originalM);
 			return exploitStringBuilder.buildIdaExploitString(resultsObject);
@@ -208,39 +200,25 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		}
 	}
 	
-	protected EdaAnalysisResults edaTestCaseParallel(NFAGraph originalM, LinkedList<NFAGraph> sccsInFlat) throws InterruptedException {
+	protected EdaAnalysisResults edaTestCaseParallel(NFAGraph originalM, LinkedList<NFAGraph> sccsInFlat) {
 		for (NFAGraph currentSccInFlat : sccsInFlat) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			for (NFAEdge e : currentSccInFlat.edgeSet()) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				if (e.getNumParallel() > 1) {
 
 					/* building the exploit string */
 					NFAVertexND sourceVertex = e.getSourceVertex();
 					// System.out.println("Case: Parallel edges in merged");
-					EdaAnalysisResults resultsObject = new EdaAnalysisResultsParallel(originalM, currentSccInFlat, sourceVertex, e);
-					return resultsObject;
+					return new EdaAnalysisResultsParallel(originalM, currentSccInFlat, sourceVertex, e);
 				}
 			}
 			for (NFAVertexND sourceVertex : currentSccInFlat.vertexSet()) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				HashSet<NFAVertexND> epsilonAdjacentVertices = new HashSet<NFAVertexND>();
 				HashSet<NFAEdge> outgoingEpsilonEdges = (HashSet<NFAEdge>) currentSccInFlat.outgoingEpsilonEdgesOf(sourceVertex);
 				for (NFAEdge e : outgoingEpsilonEdges) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					NFAVertexND targetVertex = e.getTargetVertex();
 					if (epsilonAdjacentVertices.contains(targetVertex)) {
-						
-						EdaAnalysisResults resultsObject = new EdaAnalysisResultsParallel(originalM, currentSccInFlat, sourceVertex, e);
-						return resultsObject;
+
+						return new EdaAnalysisResultsParallel(originalM, currentSccInFlat, sourceVertex, e);
 					} else {
 						epsilonAdjacentVertices.add(targetVertex);
 					}
@@ -251,28 +229,18 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		return new EdaAnalysisResultsNoEda(originalM);
 	}
 	
-	protected EdaAnalysisResults edaTestCaseFilter(NFAGraph originalM, NFAGraph merged) throws InterruptedException {
+	protected EdaAnalysisResults edaTestCaseFilter(NFAGraph originalM, NFAGraph merged) {
 		NFAGraph pc = NFAAnalysisTools.productConstructionAFA(merged);
 		
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		List<NFAGraph> pcSCCs = NFAAnalysisTools.getStronglyConnectedComponents(pc, maxComplexity);
+		if (pcSCCs == null) {
+			return new TooComplexEdaAnalysisResults(originalM);
 		}
-		
-		//pc = NFAAnalysisTools.makeTrim(pc);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		List<NFAGraph> pcSCCs = NFAAnalysisTools.getStronglyConnectedComponents(pc);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
+
 		for (NFAGraph pcSCC : pcSCCs) {
 			
 			for (NFAVertexND pfp : pcSCC.vertexSet()) {
 				
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
 				String p1 = pfp.getStateNumberByDimension(1);
 				String p2 = pfp.getStateNumberByDimension(3);
 				if (p1.equals(p2)) {
@@ -280,9 +248,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 
 					for (NFAVertexND qfq : pcSCC.vertexSet()) {
 						
-						if (isInterrupted()) {
-							throw new InterruptedException();
-						}
 						String q1 = qfq.getStateNumberByDimension(1);
 						String q2 = qfq.getStateNumberByDimension(3);
 						if (!q1.equals(q2)) {
@@ -304,7 +269,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		return new EdaAnalysisResultsNoEda(originalM);
 	}
 	
-	protected IdaAnalysisResults idaTestCaseFilter(NFAGraph originalM, NFAGraph flat) throws InterruptedException {
+	protected IdaAnalysisResults idaTestCaseFilter(NFAGraph originalM, NFAGraph flat) {
 		//System.out.println(originalM);
 		//NFAGraph m1 = flat.copy();
 		//NFAGraph pc = NFAAnalysisTools.productConstructionAFAFA(m1);
@@ -318,9 +283,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		/* Adding the edges from (p, q, q) to (p, p, q) */
 		NFAGraph pcWithBackEdges = pc.copy();
 		for (NFAVertexND sourcePCV : pc.vertexSet()) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 
 			String p1 = sourcePCV.getStateNumberByDimension(1);
 			String p2 = sourcePCV.getStateNumberByDimension(3);
@@ -333,13 +295,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 				 * combinations
 				 */
 				for (String f1 : filterStates) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
 					for (String f2 : filterStates) {
-						if (isInterrupted()) {
-							throw new InterruptedException();
-						}
 						NFAVertexND targetPCV = new NFAVertexND(p1, f1, q, f2, q);
 						/* found (p, p, q) and (p, q, q) */
 						if (pc.containsVertex(targetPCV)) {
@@ -354,21 +310,19 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		}
 		
 		boolean containsIda = false;
-		LinkedList<NFAGraph> sccs = NFAAnalysisTools.getStronglyConnectedComponents(pcWithBackEdges);
+		LinkedList<NFAGraph> sccs = NFAAnalysisTools.getStronglyConnectedComponents(pcWithBackEdges, maxComplexity);
+		if (sccs == null) {
+			return new IdaAnalysisResultsNoIda(originalM);
+		}
+
 		LinkedList<NFAVertexND> storedPs = new LinkedList<NFAVertexND>();
 		LinkedList<NFAVertexND> storedQs = new LinkedList<NFAVertexND>();
 		LinkedList<LinkedList<TransitionLabel>> storedSymbols = new LinkedList<LinkedList<TransitionLabel>>();
 		
 		for (NFAGraph scc : sccs) {
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			boolean containsSymbolTransition = false;
 			for (NFAEdge e : scc.edgeSet()) {
-				if (isInterrupted()) {
-					throw new InterruptedException();
-				}
-				TransitionLabel tl = e.getTransitionLabel();				
+				TransitionLabel tl = e.getTransitionLabel();
 				if (tl.getTransitionType() == TransitionType.SYMBOL) {
 					containsSymbolTransition = true;
 					break;
@@ -376,10 +330,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 			}
 			if (containsSymbolTransition) {
 				for (NFAEdge e : scc.edgeSet()) {
-					if (isInterrupted()) {
-						throw new InterruptedException();
-					}
-					
 					TransitionLabel tl = e.getTransitionLabel();				
 					if (tl.getTransitionType() == TransitionType.OTHER) {
 						if (tl instanceof IdaSpecialTransitionLabel) {
@@ -387,6 +337,9 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 							NFAVertexND p = eSource.getStateByDimension(1);
 							NFAVertexND q = eSource.getStateByDimension(5);	
 							LinkedList<NFAEdge> pqPath = NFAAnalysisTools.shortestPathBetween(flat, p, q);
+							if (pqPath == null) {
+								continue;
+							}
 							LinkedList<TransitionLabel> pqPathTransitionLabels = new LinkedList<TransitionLabel>();	
 							for (NFAEdge e2 : pqPath) {
 								TransitionLabel currentTransitionLabel = e2.getTransitionLabel();
@@ -483,11 +436,11 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		}
 	}
 	
-	private int calculateD(NFAGraph originalM, NFAVertexND initialState, LinkedList<NFAEdge> maxPath) throws InterruptedException {
+	private int calculateD(NFAGraph originalM, NFAVertexND initialState, LinkedList<NFAEdge> maxPath) {
 		return calculateDDFS(originalM, initialState, 0, -1, new LinkedList<NFAEdge>(), maxPath, new HashSet<NFAEdge>());
 	}
 	
-	private int calculateDDFS(NFAGraph m, NFAVertexND currentVertex, int currentD, int maxD, LinkedList<NFAEdge> currentPath, LinkedList<NFAEdge> maxPath, HashSet<NFAEdge> traversed) throws InterruptedException {
+	private int calculateDDFS(NFAGraph m, NFAVertexND currentVertex, int currentD, int maxD, LinkedList<NFAEdge> currentPath, LinkedList<NFAEdge> maxPath, HashSet<NFAEdge> traversed) {
 		/*
 		 * For an optimisation the set "traversed" can be removed completely,
 		 * since originalM will always be a DAG. At the moment it is included for
@@ -495,9 +448,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		 */
 		for (NFAEdge currentE : m.outgoingEdgesOf(currentVertex)) {
 
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			TransitionLabel tl = currentE.getTransitionLabel();
 			if (!traversed.contains(currentE)) {
 				traversed.add(currentE);
@@ -528,43 +478,28 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 	}
 		
 	/* Assume NFA has no epsilon loops, only one start and one accept and every state has either epsilon transitions, or one symbol transition from it */
-	protected EdaAnalysisResults edaUnprioritisedAnalysis(NFAGraph m) throws InterruptedException {
+	protected EdaAnalysisResults edaUnprioritisedAnalysis(NFAGraph m, int maxComplexity) {
 		NFAGraph unprioritisedNFAGraph = createUnprioritisedNFAGraph(m);
 		//System.out.println("UnprioritisedNFAGraph:");
 		//System.out.println(unprioritisedNFAGraph);
 		//System.out.println("End UnpioritisedNFAGraph");
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
 		
 		NFAGraph trimmedUPNFA = NFAAnalysisTools.makeTrimUPNFA(m, unprioritisedNFAGraph);
 		//trimmedUPNFA = NFAAnalysisTools.makeTrim(trimmedUPNFA);
 		
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
 		HashMap<NFAVertexND, UPNFAState> statesMap = new HashMap<NFAVertexND, UPNFAState>();
 		NFAGraph converted = NFAAnalysisTools.convertUpNFAToNFAGraph(trimmedUPNFA, statesMap);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
 		//System.out.println("Trimmed UPNFA");
 		//System.out.println(converted);
 		//System.out.println("End");
 		
-		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(converted);
-		if (isInterrupted()) {
-			throw new InterruptedException();
+		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(converted, maxComplexity);
+		if (sccsInFlat == null) {
+			return null;
 		}
-		
-		EdaAnalysisResults resultsObject = new EdaAnalysisResultsNoEda(m);
-		/* Testing for parallel edges in scc in merged graph */
-		resultsObject = edaTestCaseParallel(converted, sccsInFlat);
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-		
+
+		EdaAnalysisResults resultsObject = edaTestCaseParallel(converted, sccsInFlat);
+
 		if (resultsObject.edaCase == EdaCases.NO_EDA) {
 			/* Testing for multiple paths in PC */	
 			//System.out.println("CONVERTED");	
@@ -578,15 +513,11 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 	}
 	
 	/* Assume NFA has no epsilon loops, only one start and one accept and every state has either epsilon transitions, or one symbol transition from it */
-	protected IdaAnalysisResults idaUnprioritisedAnalysis(NFAGraph m) throws InterruptedException {		
+	protected IdaAnalysisResults idaUnprioritisedAnalysis(NFAGraph m) {		
 		NFAGraph unprioritisedNFAGraph = createUnprioritisedNFAGraph(m);
 		NFAGraph trimmedUPNFA = NFAAnalysisTools.makeTrimUPNFA(m, unprioritisedNFAGraph);
 		trimmedUPNFA = NFAAnalysisTools.makeTrim(trimmedUPNFA);
 		
-		if (isInterrupted()) {
-			throw new InterruptedException();
-		}
-
 		HashMap<NFAVertexND, UPNFAState> statesMap = new HashMap<NFAVertexND, UPNFAState>();
 		NFAGraph converted = NFAAnalysisTools.convertUpNFAToNFAGraph(trimmedUPNFA, statesMap);
 		IdaAnalysisResults resultsObject = new IdaAnalysisResultsNoIda(m);
@@ -597,7 +528,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		return resultsObject;
 	}
 	
-	protected NFAGraph createUnprioritisedNFAGraph(NFAGraph m) throws InterruptedException {
+	protected NFAGraph createUnprioritisedNFAGraph(NFAGraph m) {
 		NFAGraph resultUPNFA = new NFAGraph();
 		int i = 0;
 		//System.out.println("check0")
@@ -646,10 +577,8 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 					//System.out.println("check7")
 					resultUPNFA.addAcceptingState(state);
 				}
-				if (!visited.contains(state)) {
-					//System.out.println("check8")
-					toVisit.add(state);
-				}
+				//System.out.println("check8")
+				toVisit.add(state);
 				//System.out.println("check9")
 			}
 			NFAEdge newEdge = new NFAEdge(newInitialState, state, new EpsilonTransitionLabel("ε" + priorityCounter));
@@ -658,9 +587,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		}
 		while (!toVisit.isEmpty()) {
 			//System.out.println("check10")
-			if (isInterrupted()) {
-				throw new InterruptedException();
-			}
 			UPNFAState currentState = toVisit.removeFirst();
 			
 			ArrayList<String> q = currentState.getStates();
@@ -678,9 +604,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 					Set<NFAVertexND> s = new HashSet<NFAVertexND>();
 					for (NFAEdge currentEdge : sortedEdges) {
 						//System.out.println("check13: " + currentEdge.getSourceVertex() + "-" + currentEdge + "->" + currentEdge.getTargetVertex())
-						if (isInterrupted()) {
-							throw new InterruptedException();
-						}
 						NFAVertexND targetVertex = currentEdge.getTargetVertex();
 						
 						Set<NFAVertexND> newP = new HashSet<NFAVertexND>(P);
@@ -717,9 +640,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 					// This for loop builds up labelToReachableStatesMap (does this preserve the priorities of P in labelToReachableStatesMap? Does it have to?)
 					for (NFAVertexND p : P) {
 						//System.out.println("check19")
-						if (isInterrupted()) {
-							throw new InterruptedException();
-						}
 						if (stateToSymbolMap.containsKey(p)) {
 							//System.out.println("check20: " + p)
 							TransitionLabel pSymbolTransition = stateToSymbolMap.get(p);
@@ -729,13 +649,8 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 								//System.out.println("check21")
 								LinkedList<NFAVertexND> reachableStates = labelToReachableStatesMap.get(pSymbolTransition);
 								/* We add one by one manually to interrupt */
-								for (NFAVertexND epsilonClosureState : epsilonClosure) {
-									//System.out.println("check22")
-									if (isInterrupted()) {
-										throw new InterruptedException();
-									}
-									reachableStates.add(epsilonClosureState);
-								}
+								//System.out.println("check22")
+								reachableStates.addAll(epsilonClosure);
 							} else {
 								// Merge the symbol transition into the others with which it intersects
 								//System.out.println("check23")
@@ -797,9 +712,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 					}
 					// Shouldn't this maybe be in order of priority? ()
 					for (Map.Entry<TransitionLabel, LinkedList<NFAVertexND>> kv : labelToReachableStatesMap.entrySet()) {
-						if (isInterrupted()) {
-							throw new InterruptedException();
-						}
 						TransitionLabel currentTransitionLabel = kv.getKey();
 						LinkedList<NFAVertexND> currentReachableStates = kv.getValue();
 						//System.out.println("check32: " + symbolTransition + " " + currentTransitionLabel)
@@ -839,9 +751,6 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 					//System.out.println("check40")
 					for (Map.Entry<TransitionLabel, UPNFAState> kv : newTransitionLabelToStateMap.entrySet()) {
 						//System.out.println("check41")
-						if (isInterrupted()) {
-							throw new InterruptedException();
-						}
 						UPNFAState targetState = kv.getValue();
 						TransitionLabel tl = kv.getKey();
 						

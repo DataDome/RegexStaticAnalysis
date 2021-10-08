@@ -44,7 +44,7 @@ public abstract class ParseTreeToNFAConverter implements NFACreator {
 		lookAroundStateCounter = 0;
 	}
 
-	public NFAGraph convertParseTree(ParseTree parseTree) throws InterruptedException {
+	public NFAGraph convertParseTree(ParseTree parseTree) {
 		
 		TreeNode root = parseTree.getRoot();
 		NFAGraph nfaGraph = dfsBuild(root);
@@ -192,7 +192,7 @@ public abstract class ParseTreeToNFAConverter implements NFACreator {
 		return starNFA(wildCardStar, new RegexQuantifiableOperator.RegexStarOperator(QuantifierType.GREEDY, index));
 	}
 
-	private NFAGraph performLookAroundIntersection(NFAGraph nfaGraph) throws InterruptedException {
+	private NFAGraph performLookAroundIntersection(NFAGraph nfaGraph) {
 		NFAGraph intersectedGraph = nfaGraph;
 
 		/* Positive look ahead intersection */
@@ -206,7 +206,7 @@ public abstract class ParseTreeToNFAConverter implements NFACreator {
 
 	}
 
-	private NFAGraph performLookAheadIntersection(NFAGraph nfa, NFAVertexND lookAroundState, NFAGraph lookAroundNFA) throws InterruptedException {
+	private NFAGraph performLookAheadIntersection(NFAGraph nfa, NFAVertexND lookAroundState, NFAGraph lookAroundNFA) {
 		NFAGraph intersectedNFA = nfa.copy();
 		NFAVertexND oldInitialState = intersectedNFA.getInitialState();
 		intersectedNFA.setInitialState(lookAroundState);

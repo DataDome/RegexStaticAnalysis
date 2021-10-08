@@ -7,7 +7,7 @@ import analysis.AnalysisSettings.NFAConstruction;
 
 public class MatcherDriver {
 
-	public static void main(String args[]) throws InterruptedException {
+	public static void main(String args[]) {
 		if (args.length < 2) {
 			System.out.println("usage: java MatcherDriver <regex> <input string>");
 			System.exit(0);

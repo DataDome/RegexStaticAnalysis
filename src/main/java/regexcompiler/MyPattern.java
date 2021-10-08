@@ -34,7 +34,7 @@ public class MyPattern {
 
 	private NFAGraph nfaGraph;
 	
-	public static void main(String [] args) throws InterruptedException {
+	public static void main(String [] args) {
 		if (args.length < 1) {
 			System.out.println("Pattern should be specified as a command line argument (and possibly give an input string).");
 		}
@@ -66,7 +66,7 @@ public class MyPattern {
 		this.nfaGraph = nfaGraph;
 	}
 
-	public static MyPattern compile(String pattern, NFAConstruction construction) throws InterruptedException {
+	public static MyPattern compile(String pattern, NFAConstruction construction) {
 		NFAGraph nfaGraph = toNFAGraph(pattern, construction);
 		return new MyPattern(nfaGraph);
 	}
@@ -78,7 +78,7 @@ public class MyPattern {
 		return new RegexNFAMatcher(nfaGraph, inputString);
 	}
 	
-	public static NFAGraph toNFAGraph(String pattern, NFAConstruction construction) throws InterruptedException {
+	public static NFAGraph toNFAGraph(String pattern, NFAConstruction construction) {
 		Tokeniser t = new Tokeniser(pattern);
 		List<RegexToken> tokenList = t.tokenise();
 		//System.out.println(tokenList);	
