@@ -2,7 +2,6 @@ package nfa.transitionlabel;
 
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
-import java.util.Scanner;
 import java.util.regex.PatternSyntaxException;
 
 import util.RangeSet;
@@ -19,9 +18,8 @@ public class TransitionLabelParserRecursive {
 	private static final int MIN_16UNICODE = 0;
 	private static final int MAX_16UNICODE = 65536;
 
-	private final Scanner labelScanner;
 	private final String transitionLabelString;
-	private String currentSymbol;
+	private char currentSymbol;
 	private int index;
 	private int depth;
 
@@ -29,25 +27,23 @@ public class TransitionLabelParserRecursive {
 
 	public TransitionLabelParserRecursive(String transitionLabelString) {
 		this.transitionLabelString = transitionLabelString;
-		this.labelScanner = new Scanner(transitionLabelString);
-		labelScanner.useDelimiter("");
 		this.index = 0;
 		this.depth = 0;
 	}
 
 	private boolean consumeSymbol() {
-		
-		try {
-			currentSymbol = labelScanner.next();
-			index++;
-		} catch (NoSuchElementException nse) {
+		if (index >= transitionLabelString.length()) {
 			return false;
 		}
+
+		currentSymbol = transitionLabelString.charAt(index);
+		index++;
+
 		return true;
 	}
 
 	private void consumeSymbolIfHasNext() {
-		if (labelScanner.hasNext()) {
+		if (index < transitionLabelString.length()) {
 			consumeSymbol();
 		}
 	}
@@ -58,11 +54,11 @@ public class TransitionLabelParserRecursive {
 		RangeSet labelRanges;
 		consumeSymbol();
 		switch (currentSymbol) {
-		case ".":
+		case '.':
 			labelRanges = CharacterClassTransitionLabel.predefinedRangeWildcard();
 			toReturn = new CharacterClassTransitionLabel(labelRanges);
 			break;
-		case "[":
+		case '[':
 			/* parse character class */
 			labelRanges = parseCharacterClass();
 			if (depth != 0) {
@@ -70,12 +66,12 @@ public class TransitionLabelParserRecursive {
 			}
 			toReturn = new CharacterClassTransitionLabel(labelRanges);
 			break;
-		case "\\":
+		case '\\':
 			/* parse predefined character class, or backslash */
 			consumeSymbol();
-			if (currentSymbol.equals("\\")) {
+			if (currentSymbol == '\\') {
 				toReturn = new CharacterClassTransitionLabel("\\");
-			} else if (currentSymbol.equals("-")) {
+			} else if (currentSymbol == '-') {
 				toReturn = new CharacterClassTransitionLabel("-");
 			} else {
 				RangeSet predefinedCharacterClassRangeSet = parsePredefinedCharacterClass(currentSymbol);
@@ -95,105 +91,105 @@ public class TransitionLabelParserRecursive {
 			}
 
 		}
-		labelScanner.close();
+		index = transitionLabelString.length();
 		return toReturn;
 	}
 	@SuppressWarnings("fallthrough")
-	private RangeSet parsePredefinedCharacterClass(String firstSymbol) {
+	private RangeSet parsePredefinedCharacterClass(char firstSymbol) {
 		RangeSet toReturn = null;
 		boolean complement = false;
 		char c;
 		switch (firstSymbol) {
-		case "a":
+		case 'a':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("" + ((char) 7));
-		case "e":
+			return parseCharacterRange(((char) 7));
+		case 'e':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("" + ((char) 27));
-		case "f":
+			return parseCharacterRange(((char) 27));
+		case 'f':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("\f");
-		case "n":
+			return parseCharacterRange('\f');
+		case 'n':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("\n");
-		case "r":
+			return parseCharacterRange('\n');
+		case 'r':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("\r");
-		case "t":
+			return parseCharacterRange('\r');
+		case 't':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("\t");
-		case "\\":
+			return parseCharacterRange('\t');
+		case '\\':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("\\");
-		case "\'":
+			return parseCharacterRange('\\');
+		case '\'':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("\'");
-		case "\"":
+			return parseCharacterRange('\'');
+		case '\"':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("\"");
-		case "[":
+			return parseCharacterRange('\"');
+		case '[':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("[");
-		case "]":
+			return parseCharacterRange('[');
+		case ']':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("]");
-		case "-":
+			return parseCharacterRange(']');
+		case '-':
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("-");
-		case "Q":
+			return parseCharacterRange('-');
+		case 'Q':
 			return parseQuotedSequence();
-		case "0":
+		case '0':
 			c = parseEscapedOctalCharacter();
-			return parseCharacterRange("" + c);
-		case "u":
+			return parseCharacterRange(c);
+		case 'u':
 			c = parseEscapedUnicodeCharacter();
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("" + c);
-		case "x":
+			return parseCharacterRange(c);
+		case 'x':
 			c = parseEscapedHexCharacter();
 			consumeSymbolIfHasNext();
-			return parseCharacterRange("" + c);
-		case "c":
+			return parseCharacterRange(c);
+		case 'c':
 			consumeSymbol();
-			int charCode = (((currentSymbol.charAt(0) - '@') % 128 + 128) % 128);
+			int charCode = (((currentSymbol - '@') % 128 + 128) % 128);
 			c = (char) charCode;		
 			consumeSymbol();
-			return parseCharacterRange("" + c);
-		case "D":
+			return parseCharacterRange(c);
+		case 'D':
 			/* predefined class: non-digits */
 			complement = true;
-		case "d":
+		case 'd':
 			/* predefined class: digits */
 			toReturn = CharacterClassTransitionLabel.predefinedRangeSetDigits();
 			break;
-		case "S":
+		case 'S':
 			/* predefined class: non-whitespace */
 			complement = true;
-		case "s":
+		case 's':
 			/* predefined class: whitespace */
 			toReturn = CharacterClassTransitionLabel.predefinedRangeSetWhiteSpaces();
 			break;
-		case "W":
+		case 'W':
 			/* predefined class: non-word */
 			complement = true;
-		case "w":
+		case 'w':
 			/* predefined class: word */
 			toReturn = CharacterClassTransitionLabel.predefinedRangeSetWordCharacters();
 			break;
-		case "V":
+		case 'V':
 			complement = true;
-		case "v":
+		case 'v':
 			/* predefined class: vertical tab */
 			toReturn = CharacterClassTransitionLabel.predefinedRangeSetVerticalTab();
 			break;
-		case "H":
+		case 'H':
 			complement = true;
-		case "h":
+		case 'h':
 			toReturn = CharacterClassTransitionLabel.predefinedRangeSetHorizontalTab();
 			break;
-		case "P":
+		case 'P':
 			complement = true;
-		case "p":
+		case 'p':
 			toReturn = parsePropertyCharacterClass();
 			break;
 		default:
@@ -202,10 +198,10 @@ public class TransitionLabelParserRecursive {
 			 * escaped, (other than those for predefined character classes, or
 			 * escape characters)
 			 */
-			if (currentSymbol.matches("[A-Za-z0-9]")) {
+			if ((currentSymbol >= 'A' && currentSymbol <= 'Z') || (currentSymbol >= 'a' && currentSymbol <= 'z') || (currentSymbol >= '0' && currentSymbol <= '9')) {
 				throw new PatternSyntaxException("Illegal/unsupported escape sequence", transitionLabelString, index);
 			} else {
-				String symbol = currentSymbol;
+				char symbol = currentSymbol;
 				consumeSymbol();
 				return parseCharacterRange(symbol);
 			}
@@ -223,30 +219,30 @@ public class TransitionLabelParserRecursive {
 		RangeSet toReturn = new RangeSet(MIN_16UNICODE, MAX_16UNICODE);
 		consumeSymbol();
 		LinkedList<Range> symbolSequence = new LinkedList<Range>();
-		String lastChar = currentSymbol;
+		char lastChar = currentSymbol;
 		
 		while (true) {
-			if (currentSymbol.equals("\\")) {
+			if (currentSymbol == '\\') {
 				if (!consumeSymbol()) {
 					throw new PatternSyntaxException("Unclosed character class", transitionLabelString, index);
 				}
-				if (currentSymbol.equals("E")) {
+				if (currentSymbol == 'E') {
 					if (!consumeSymbol()) {
 						throw new PatternSyntaxException("Unclosed character class", transitionLabelString, index);
 					}
 					break;
 				} else {
-					symbolSequence.add(toReturn.createRange((int) "\\".charAt(0)));
+					symbolSequence.add(toReturn.createRange('\\'));
 				}
 			}
-			symbolSequence.add(toReturn.createRange((int) currentSymbol.charAt(0)));
+			symbolSequence.add(toReturn.createRange(currentSymbol));
 			lastChar = currentSymbol;
 			if (!consumeSymbol()) {
 				throw new PatternSyntaxException("Unclosed character class", transitionLabelString, index);
 			}
 		}
 		toReturn.union(symbolSequence);
-		if (currentSymbol.equals("-")) {
+		if (currentSymbol == '-') {
 			toReturn.union(parseCharacterRange(lastChar));
 		}
 		
@@ -260,7 +256,7 @@ public class TransitionLabelParserRecursive {
 		int i = 0;
 		/* Read octal symbols until larger than allowed max up to a maximum of three characters */
 		int tmpNum = 0;
-		while (tmpNum < 0377 && currentSymbol.matches("[0-7]") && i < 3) {
+		while (tmpNum < 0377 && currentSymbol >= '0' && currentSymbol <= '7' && i < 3) {
 			
 			hexNumberStr.append(currentSymbol);			
 			tmpNum = Integer.parseInt(hexNumberStr.toString(), 8);
@@ -308,11 +304,11 @@ public class TransitionLabelParserRecursive {
 	private char parseEscapedHexCharacter() {
 		consumeSymbol();
 		StringBuilder hexNumberStr = new StringBuilder();
-		if (currentSymbol.equals("{")) {
+		if (currentSymbol == '{') {
 			/* read until } is found */
 			consumeSymbol();
 
-			while (!currentSymbol.equals("}")) {
+			while (currentSymbol != '}') {
 				hexNumberStr.append(currentSymbol);
 				consumeSymbol();
 			}
@@ -345,14 +341,14 @@ public class TransitionLabelParserRecursive {
 		RangeSet toReturn;
 
 		consumeSymbol();
-		if (!currentSymbol.equals("{")) {
+		if (currentSymbol != '{') {
 			/* Single character character properties */
-			toReturn = characterPropertyParser.parseCharacterProperty(currentSymbol);
+			toReturn = characterPropertyParser.parseCharacterProperty(Character.toString(currentSymbol));
 
 		} else {
 			StringBuilder sb = new StringBuilder();
 			consumeSymbol(); /* eating the '{' */
-			while (!currentSymbol.equals("}")) {
+			while (currentSymbol != '}') {
 				sb.append(currentSymbol);
 				consumeSymbol();
 			}
@@ -369,18 +365,18 @@ public class TransitionLabelParserRecursive {
 			throw new PatternSyntaxException("Unclosed character class", transitionLabelString, index);
 		}
 		boolean isComplement = false;
-		if (currentSymbol.equals("^")) {
+		if (currentSymbol == '^') {
 			isComplement = true;
 			consumeSymbol(); /* eating ^ */
 		}
 
 		RangeSet characterClassRangeSet = new RangeSet(MIN_16UNICODE, MAX_16UNICODE);
-		if (currentSymbol.equals("]")) {
+		if (currentSymbol == ']') {
 			/*
 			 * since we make the assumption that empty character classes i.e. []
 			 * are not allowed, we treat ] as a literal character.
 			 */
-			characterClassRangeSet.union(createCharacterRange("]"));
+			characterClassRangeSet.union(createCharacterRange(']'));
 			if (!consumeSymbol()) {
 				throw new PatternSyntaxException("Unclosed character class", transitionLabelString, index);
 			}
@@ -393,7 +389,7 @@ public class TransitionLabelParserRecursive {
 		/* The ^ only applies to the first factor */
 		characterClassRangeSet.union(parseCharacterClassFactor(characterClassRangeSet, isComplement));
 
-		while (!currentSymbol.equals("]")) {
+		while (currentSymbol != ']') {
 			/*
 			 * this might be a problem, but the parseCharacterClassFactor will
 			 * have to parse the &&
@@ -403,7 +399,7 @@ public class TransitionLabelParserRecursive {
 		}
 		
 		depth--;
-		if (labelScanner.hasNext()) {
+		if (index < transitionLabelString.length()) {
 			consumeSymbol();
 		} else if (depth != 0) {
 			throw new PatternSyntaxException("Unclosed character class", transitionLabelString, index);
@@ -417,7 +413,7 @@ public class TransitionLabelParserRecursive {
 		boolean factorComplete = false;
 		while (!factorComplete) {
 
-			if (currentSymbol.equals("[")) {
+			if (currentSymbol == '[') {
 				if (isComplement) {
 					/* ^ only applies to first term of first factor */
 					isComplement = false;
@@ -428,16 +424,16 @@ public class TransitionLabelParserRecursive {
 				}
 				RangeSet currentFactor = parseCharacterClass();
 				characterClassFactorRangeSet.union(currentFactor);
-			} else if (currentSymbol.equals("]")) {
+			} else if (currentSymbol == ']') {
 				if (isComplement) {
 					characterClassFactorRangeSet.complement();
 				}
 				/* leaving the ] for the parseCC to consume */
 				factorComplete = true; 
-			} else if (currentSymbol.equals("&")) {
+			} else if (currentSymbol == '&') {
 				consumeSymbol(); /* eating the first & */
 
-				if (currentSymbol.equals("&")) {
+				if (currentSymbol == '&') {
 
 					/* we found &&, end of factor */
 					factorComplete = true;
@@ -447,9 +443,9 @@ public class TransitionLabelParserRecursive {
 					consumeSymbol(); /* eating the second & */
 				} else {
 					/* parsing the eaten & */
-					characterClassFactorRangeSet.union(parseCharacterRange("&")); 
+					characterClassFactorRangeSet.union(parseCharacterRange('&')); 
 				}
-			} else if (currentSymbol.equals("\\")) {
+			} else if (currentSymbol == '\\') {
 				consumeSymbol();
 				/*
 				 * for some reason predefined character classes do not count as
@@ -458,7 +454,7 @@ public class TransitionLabelParserRecursive {
 				characterClassFactorRangeSet.union(parsePredefinedCharacterClass(currentSymbol));
 
 			} else {
-				String firstSymbol = currentSymbol;
+				char firstSymbol = currentSymbol;
 				consumeSymbol();
 				characterClassFactorRangeSet.union(parseCharacterRange(firstSymbol));
 			}
@@ -467,78 +463,78 @@ public class TransitionLabelParserRecursive {
 	}
 
 	/* firstSymbol is the symbol before currentSymbol */
-	private RangeSet parseCharacterRange(String firstSymbol) {
+	private RangeSet parseCharacterRange(char firstSymbol) {
 		RangeSet characterRangeRangeSet;
-		if (currentSymbol.equals("-")) {
-			if (labelScanner.hasNext()) {
+		if (currentSymbol == '-') {
+			if (index < transitionLabelString.length()) {
 				consumeSymbol();
-				if (currentSymbol.equals("\\")) {
+				if (currentSymbol == '\\') {
 					consumeSymbol();
 					switch (currentSymbol) {
-					case "a":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "" + ((char) 7));
+					case 'a':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, ((char) 7));
 						consumeSymbol();
 						break;
-					case "e":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "" + ((char) 27));
+					case 'e':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, ((char) 27));
 						consumeSymbol();
 						break;
-					case "f":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "\f");
+					case 'f':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, '\f');
 						consumeSymbol();
 						break;
-					case "n":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "\n");
+					case 'n':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, '\n');
 						consumeSymbol();
 						break;
-					case "r":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "\r");
+					case 'r':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, '\r');
 						consumeSymbol();
 						break;
-					case "t":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "\t");
+					case 't':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, '\t');
 						consumeSymbol();
 						break;
-					case "[":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "[");
+					case '[':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, '[');
 						consumeSymbol();
 						break;
-					case "]":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "]");
+					case ']':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, ']');
 						consumeSymbol();
 						break;
-					case "\\":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "\\");
+					case '\\':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, '\\');
 						consumeSymbol();
 						break;
-					case "-":
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "-");
+					case '-':
+						characterRangeRangeSet = createCharacterRange(firstSymbol, '-');
 						consumeSymbol();
 						break;
-					case "0":
+					case '0':
 						char c = parseEscapedOctalCharacter();
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "" + c);
+						characterRangeRangeSet = createCharacterRange(firstSymbol, c);
 						break;
-					case "u":
+					case 'u':
 						c = parseEscapedUnicodeCharacter();
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "" + c);
+						characterRangeRangeSet = createCharacterRange(firstSymbol, c);
 						consumeSymbol();
 						break;
-					case "x":
+					case 'x':
 						c = parseEscapedHexCharacter();
-						characterRangeRangeSet = createCharacterRange(firstSymbol, "" + c);
+						characterRangeRangeSet = createCharacterRange(firstSymbol, c);
 						consumeSymbol();
 						break;
-					case "c":
+					case 'c':
 						consumeSymbol();
-						int charCode = (((currentSymbol.charAt(0) - '@') % 128 + 128) % 128);
+						int charCode = (((currentSymbol - '@') % 128 + 128) % 128);
 						c = (char) charCode;		
 						consumeSymbol();
-						characterRangeRangeSet =  createCharacterRange(firstSymbol, "" + c);
+						characterRangeRangeSet =  createCharacterRange(firstSymbol, c);
 						consumeSymbol();
 						break;
 					default:
-						if (currentSymbol.matches("[A-Za-z0-9]")) {
+						if ((currentSymbol >= 'A' && currentSymbol <= 'Z') || (currentSymbol >= 'a' && currentSymbol <= 'z') || (currentSymbol >= '0' && currentSymbol <= '9')) {
 							throw new PatternSyntaxException("Illegal character range", transitionLabelString, index);
 						} else {
 							characterRangeRangeSet = createCharacterRange(firstSymbol, currentSymbol);
@@ -547,9 +543,9 @@ public class TransitionLabelParserRecursive {
 						
 					}
 
-				} else if (currentSymbol.equals("]") || currentSymbol.equals("[")) {
+				} else if (currentSymbol == ']' || currentSymbol == '[') {
 					characterRangeRangeSet = createCharacterRange(firstSymbol);
-					characterRangeRangeSet.union(createCharacterRange("-"));
+					characterRangeRangeSet.union(createCharacterRange('-'));
 				} else {
 					characterRangeRangeSet = createCharacterRange(firstSymbol, currentSymbol);
 					consumeSymbol();
@@ -558,7 +554,7 @@ public class TransitionLabelParserRecursive {
 				throw new PatternSyntaxException("Illegal character range", transitionLabelString, index);
 			}
 
-		} else if (currentSymbol.equals("\\")) {
+		} else if (currentSymbol == '\\') {
 
 			consumeSymbol();
 			characterRangeRangeSet = createCharacterRange(firstSymbol);
@@ -570,17 +566,17 @@ public class TransitionLabelParserRecursive {
 		return characterRangeRangeSet;
 	}
 
-	private RangeSet createCharacterRange(String symbol) {
-		int currentSymbolInt = (int) symbol.charAt(0);
+	private RangeSet createCharacterRange(char symbol) {
+		int currentSymbolInt = (int) symbol;
 		RangeSet characterRangeSet = new RangeSet(MIN_16UNICODE, MAX_16UNICODE);
 		Range characterRange = characterRangeSet.createRange(currentSymbolInt, currentSymbolInt + 1);
 		characterRangeSet.union(characterRange);
 		return characterRangeSet;
 	}
 
-	private RangeSet createCharacterRange(String symbol1, String symbol2) {
-		int currentSymbolInt1 = (int) symbol1.charAt(0);
-		int currentSymbolInt2 = (int) symbol2.charAt(0);
+	private RangeSet createCharacterRange(char symbol1, char symbol2) {
+		int currentSymbolInt1 = (int) symbol1;
+		int currentSymbolInt2 = (int) symbol2;
 		RangeSet characterRangeRangeSet = new RangeSet(MIN_16UNICODE, MAX_16UNICODE);
 		try {
 			Range characterRange = characterRangeRangeSet.createRange(currentSymbolInt1, currentSymbolInt2 + 1);
