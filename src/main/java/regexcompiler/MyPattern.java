@@ -121,6 +121,11 @@ public class MyPattern {
 
 		}
 
+		private static final Pattern boundedPattern = Pattern.compile("(\\d+),(\\d+)");
+		private static final Pattern unboundedPattern = Pattern.compile("(\\d+),");
+		private static final Pattern constantRepititionPattern = Pattern.compile("(\\d+)");
+
+
 		private List<RegexToken> tokenise() {
 			tokenList = new ArrayList<RegexToken>();
 			tokenListStack = new Stack<List<RegexToken>>();
@@ -227,9 +232,6 @@ public class MyPattern {
 						}
 
 						String bounds = countClosureOperatorBuilder.toString();
-						Pattern boundedPattern = Pattern.compile("(\\d+),(\\d+)");
-						Pattern unboundedPattern = Pattern.compile("(\\d+),");
-						Pattern constantRepititionPattern = Pattern.compile("(\\d+)");
 
 						Matcher boundedMatcher = boundedPattern.matcher(bounds);
 						Matcher unboundedMatcher = unboundedPattern.matcher(bounds);

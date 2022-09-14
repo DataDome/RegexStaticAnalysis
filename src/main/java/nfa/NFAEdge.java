@@ -9,6 +9,8 @@ import nfa.transitionlabel.EpsilonTransitionLabel;
 import nfa.transitionlabel.EmptyTransitionLabelException;
 import nfa.transitionlabel.TransitionLabelParserRecursive;
 
+import java.util.regex.Pattern;
+
 /**
  * An edge used to represent one of the transitions in an NFA.
  * 
@@ -120,8 +122,10 @@ public class NFAEdge extends DefaultEdge implements Comparable<NFAEdge> {
 		this.isEpsilonTransition = transitionLabel.getTransitionType() == TransitionType.EPSILON;
 	}
 
-	private boolean isEpsilonCharacter(String transitionLabelString) {
-		return transitionLabelString.matches("ε\\d*");
+	private static Pattern isEpsilonCharacterRegex = Pattern.compile("ε\\d*");
+
+	public static boolean isEpsilonCharacter(String transitionLabelString) {
+		return transitionLabelString.indexOf('ε') >= 0 && isEpsilonCharacterRegex.matcher(transitionLabelString).find();
 	}
 
 	/**

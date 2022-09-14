@@ -493,12 +493,14 @@ public abstract class ParsingPreprocessor implements Preprocessor {
 
 	}
 
+	private static Pattern canEscapeVerbatimRegex = Pattern.compile("[a-zA-Z]");
+
 	private static boolean canEscapeVerbatim(String symbol) {
 		/*
 		 * we can escape any characters, except letters, to get their verbatim
 		 * symbol
 		 */
-		return !symbol.matches("[a-zA-Z]");
+		return !canEscapeVerbatimRegex.matcher(symbol).find();
 	}
 	
 	private static void checkAllowedFunctionality(boolean isHandled, String message) {

@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.regex.PatternSyntaxException;
 
+import nfa.NFAEdge;
 import util.RangeSet;
 import util.RangeSet.Range;
 
@@ -84,7 +85,7 @@ public class TransitionLabelParserRecursive {
 			 * parse character, we send the entire string, for epsilon
 			 * subscripts
 			 */
-			if (transitionLabelString.matches("ε\\d+")) {
+			if (NFAEdge.isEpsilonCharacter(transitionLabelString)) {
 				toReturn = new EpsilonTransitionLabel(transitionLabelString);
 			} else {
 				toReturn = new CharacterClassTransitionLabel(transitionLabelString);

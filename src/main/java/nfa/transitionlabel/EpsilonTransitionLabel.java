@@ -8,10 +8,11 @@ public class EpsilonTransitionLabel implements TransitionLabel, Comparable<Epsil
 	private final String transitionLabel;
 	
 	private final int priority;
+
+	private static final Pattern epsilonTransitionLabelPattern = Pattern.compile("ε(\\d*)");
 	
 	public EpsilonTransitionLabel(String transitionLabel) {
-		Pattern pattern = Pattern.compile("ε(\\d*)");
-		Matcher matcher = pattern.matcher(transitionLabel);
+		Matcher matcher = epsilonTransitionLabelPattern.matcher(transitionLabel);
 		if (!matcher.matches()) {
 			throw new IllegalArgumentException("Transition label must be of the format ε\\d*");
 		} else {

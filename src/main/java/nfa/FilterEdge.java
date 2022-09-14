@@ -57,7 +57,7 @@ public class FilterEdge extends NFAEdge {
 			 * if this is not an epsilon transition, it is only a transition for
 			 * the word if the word also is not an epsilon transition
 			 */
-			return !word.matches("ε\\d*");
+			return !NFAEdge.isEpsilonCharacter(word);
 		}
 	}
 	
