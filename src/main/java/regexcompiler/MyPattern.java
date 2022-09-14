@@ -126,7 +126,7 @@ public class MyPattern {
 			tokenListStack = new Stack<List<RegexToken>>();
 			groupTypeStack = new Stack<RegexGroupType>();
 			i = 0;
-			while (true) {
+			while (length > i) {
 				if (!verbatimMode) {
 					switch (patternArr[i]) {
 					case '^':
@@ -299,10 +299,6 @@ public class MyPattern {
 						i++;
 					}
 				} // End if/else
-
-				if (i >= length) {
-					break;
-				}
 			}
 			return tokenList;
 
