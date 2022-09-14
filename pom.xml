@@ -6,7 +6,7 @@
 
     <groupId>co.datadome</groupId>
     <artifactId>regex-static-analysis</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <name>RegexStaticAnalysis</name>
     <description>A tool to perform static analysis on regexes to determine whether they are vulnerable to ReDoS.</description>
     <packaging>jar</packaging>
