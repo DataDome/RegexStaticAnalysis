@@ -1,7 +1,5 @@
 package nfa;
 
-import util.MurmurHash3;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -18,7 +16,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 
 	private ArrayList<String> states;
 
-	private int hashCode1;
+	private int hashCode1 = 0x811c9dc5;
 
 	private int hashCode2;
 
@@ -294,7 +292,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	private void addToStates(String state) {
 		states.add(state);
 		for (int i = 0; i < state.length(); i++) {
-			hashCode1 = MurmurHash3.hash32(state.charAt(i), hashCode1);
+			hashCode1 = (0x811c9dc5 * hashCode1) ^ state.charAt(i);
 			hashCode2 = 31 * hashCode2 + state.charAt(i);
 		}
 	}
