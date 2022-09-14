@@ -8,6 +8,9 @@ import java.util.Set;
 public class UPNFAState extends NFAVertexND {
 	
 	private final Set<NFAVertexND> P;
+
+	private final int pHashCode;
+
 	public Set<NFAVertexND> getP() {
 		return P;
 	}
@@ -15,6 +18,7 @@ public class UPNFAState extends NFAVertexND {
 	public UPNFAState(Collection<String> q, Set<NFAVertexND> P) {
 		super(q);
 		this.P = new HashSet<NFAVertexND>(P);
+		this.pHashCode = this.P.hashCode();
 	}
 	
 	@Override
@@ -32,9 +36,14 @@ public class UPNFAState extends NFAVertexND {
 			return false;
 		}
 		UPNFAState p = (UPNFAState) o;
-		return P.equals(p.P);
+		return pHashCode == p.pHashCode && P.equals(p.P);
 	}
-	
+
+	@Override
+	public int hashCode() {
+		return super.hashCode() ^ pHashCode;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder("({");

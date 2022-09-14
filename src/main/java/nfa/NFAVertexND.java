@@ -14,7 +14,7 @@ import java.util.Set;
  */
 public class NFAVertexND implements Comparable<NFAVertexND> {
 
-	private ArrayList<String> states;
+	final private ArrayList<String> states;
 
 	private int hashCode1 = 0x811c9dc5;
 
@@ -59,17 +59,6 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 	 */
 	public NFAVertexND getStateByDimensionRange(int fromIndex, int toIndex) {
 		return new NFAVertexND(states.subList(fromIndex - 1, toIndex - 1));
-	}
-
-	/**
-	 * Adds a state at a new dimension, one more than the current highest
-	 * dimension.
-	 * 
-	 * @param state
-	 *            The state to add.
-	 */
-	public void addState(String state) {
-		addToStates(state);
 	}
 
 	/**
@@ -276,9 +265,6 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 		if (o == null) {
 			return false;
 		}
-		if (!o.getClass().isAssignableFrom(this.getClass())) {
-			return false;
-		}
 		NFAVertexND p = (NFAVertexND) o;
 		return hashCode1 == p.hashCode1 && hashCode2 == p.hashCode2 && states.size() == p.states.size();
 
@@ -286,7 +272,7 @@ public class NFAVertexND implements Comparable<NFAVertexND> {
 
 	@Override
 	public int hashCode() {
-		return hashCode1 + hashCode2 + states.size();
+		return hashCode1 ^ hashCode2 ^ states.size();
 	}
 
 	private void addToStates(String state) {
