@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import analysis.EdaAnalysisResults.EdaCases;
@@ -37,12 +38,15 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 
 	public final int maxComplexity;
 
+	public final AtomicInteger maxSeenComplexity;
+
 	protected final ExploitStringBuilder exploitStringBuilder;
 	protected final PriorityRemovalStrategy priorityRemovalStrategy;
-	public NFAAnalyser(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity) {
+	public NFAAnalyser(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity, AtomicInteger maxSeenComplexity) {
 		this.exploitStringBuilder = new ExploitStringBuilder();
 		this.priorityRemovalStrategy = priorityRemovalStrategy;
 		this.maxComplexity = maxComplexity;
+		this.maxSeenComplexity = maxSeenComplexity;
 	}
 
 	protected Map<NFAGraph, EdaAnalysisResults> edaResultsCache = new HashMap<NFAGraph, EdaAnalysisResults>();
@@ -232,7 +236,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 	protected EdaAnalysisResults edaTestCaseFilter(NFAGraph originalM, NFAGraph merged) {
 		NFAGraph pc = NFAAnalysisTools.productConstructionAFA(merged);
 		
-		List<NFAGraph> pcSCCs = NFAAnalysisTools.getStronglyConnectedComponents(pc, maxComplexity);
+		List<NFAGraph> pcSCCs = NFAAnalysisTools.getStronglyConnectedComponents(pc, maxComplexity, maxSeenComplexity);
 		if (pcSCCs == null) {
 			return new TooComplexEdaAnalysisResults(originalM);
 		}
@@ -310,7 +314,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		}
 		
 		boolean containsIda = false;
-		LinkedList<NFAGraph> sccs = NFAAnalysisTools.getStronglyConnectedComponents(pcWithBackEdges, maxComplexity);
+		LinkedList<NFAGraph> sccs = NFAAnalysisTools.getStronglyConnectedComponents(pcWithBackEdges, maxComplexity, maxSeenComplexity);
 		if (sccs == null) {
 			return new IdaAnalysisResultsNoIda(originalM);
 		}
@@ -493,7 +497,7 @@ public abstract class NFAAnalyser implements NFAAnalyserInterface {
 		//System.out.println(converted);
 		//System.out.println("End");
 		
-		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(converted, maxComplexity);
+		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(converted, maxComplexity, maxSeenComplexity);
 		if (sccsInFlat == null) {
 			return null;
 		}

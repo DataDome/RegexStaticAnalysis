@@ -1,6 +1,8 @@
 package analysis;
 
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class AnalysisSettings {
 
 	public static enum NFAConstruction {
@@ -74,6 +76,12 @@ public class AnalysisSettings {
 		return maxComplexity;
 	}
 
+	private final AtomicInteger maxSeenComplexity;
+
+	public AtomicInteger getMaxSeenComplexity() {
+		return maxSeenComplexity;
+	}
+
 	public AnalysisSettings(NFAConstruction nfaConstruction,
 					PreprocessingType preprocessingType, 
 					EpsilonLoopRemovalStrategy epsilonLoopRemovalStrategy, 
@@ -83,7 +91,8 @@ public class AnalysisSettings {
 					boolean shouldTestEdaExploitString, 
 					boolean shouldConstructIdaExploitString,
 					int timeout,
-					int maxComplexity) {
+					int maxComplexity,
+					AtomicInteger maxSeenComplexity) {
 		this.nfaConstruction = nfaConstruction;
 		this.preprocessingType = preprocessingType;
 		this.epsilonLoopRemovalStrategy = epsilonLoopRemovalStrategy;
@@ -94,6 +103,7 @@ public class AnalysisSettings {
 		this.shouldConstructIdaExploitString = shouldConstructIdaExploitString;
 		this.timeout = timeout;
 		this.maxComplexity = maxComplexity;
+		this.maxSeenComplexity = maxSeenComplexity;
 	}
 	
 }

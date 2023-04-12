@@ -3,6 +3,7 @@ package analysis;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import analysis.EdaAnalysisResults.EdaCases;
 import analysis.IdaAnalysisResults.IdaCases;
@@ -23,8 +24,8 @@ import nfa.NFAVertexND;
  */
 public class NFAAnalyserMerging extends NFAAnalyser {
 	
-	public NFAAnalyserMerging(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity) {
-		super(priorityRemovalStrategy, maxComplexity);
+	public NFAAnalyserMerging(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity, AtomicInteger maxSeenComplexity) {
+		super(priorityRemovalStrategy, maxComplexity, maxSeenComplexity);
 	}
 
 	private EdaAnalysisResults testCaseESCC(NFAGraph originalM, LinkedList<NFAGraph> sccsInOriginal, Map<NFAVertexND, NFAGraph> esccs) {
@@ -145,18 +146,18 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 
 	@Override
 	protected EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM) {
-		LinkedList<NFAGraph> sccsInOriginal = NFAAnalysisTools.getStronglyConnectedComponents(originalM, maxComplexity);
+		LinkedList<NFAGraph> sccsInOriginal = NFAAnalysisTools.getStronglyConnectedComponents(originalM, maxComplexity, maxSeenComplexity);
 		if (sccsInOriginal == null) {
 			return new TooComplexEdaAnalysisResults(originalM);
 		}
 
 		NFAGraph merged = originalM.copy();
-		Map<NFAVertexND, NFAGraph> esccs = NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity);
+		Map<NFAVertexND, NFAGraph> esccs = NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity, maxSeenComplexity);
 		if (esccs == null) {
 			return new TooComplexEdaAnalysisResults(originalM);
 		}
 
-		LinkedList<NFAGraph> sccsInMerged = NFAAnalysisTools.getStronglyConnectedComponents(merged, maxComplexity);
+		LinkedList<NFAGraph> sccsInMerged = NFAAnalysisTools.getStronglyConnectedComponents(merged, maxComplexity, maxSeenComplexity);
 		if (sccsInMerged == null) {
 			return new TooComplexEdaAnalysisResults(originalM);
 		}
@@ -187,7 +188,7 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 	@Override
 	protected EdaAnalysisResults calculateEdaUnprioritisedAnalysisResults(NFAGraph originalM) {
 		NFAGraph merged = originalM.copy();
-		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity) == null) {
+		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity, maxSeenComplexity) == null) {
 			return new TooComplexEdaAnalysisResults(originalM);
 		}
 
@@ -204,7 +205,7 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 	@Override
 	protected IdaAnalysisResults calculateIdaAnalysisResults(NFAGraph originalM) {
 		NFAGraph merged = originalM.copy();
-		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity) == null) {
+		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity, maxSeenComplexity) == null) {
 			return new TooComplexIdaAnalysisResults(originalM);
 		}
 		
@@ -224,7 +225,7 @@ public class NFAAnalyserMerging extends NFAAnalyser {
 	@Override
 	protected IdaAnalysisResults calculateIdaUnprioritisedAnalysisResults(NFAGraph originalM) {
 		NFAGraph merged = originalM.copy();
-		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity) == null) {
+		if (NFAAnalysisTools.mergeStronglyConnectedComponents(merged, true, maxComplexity, maxSeenComplexity) == null) {
 			return new TooComplexIdaAnalysisResults(originalM);
 		}
 

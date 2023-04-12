@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.ByteArrayInputStream;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import analysis.AnalysisSettings;
 import analysis.AnalysisSettings.NFAConstruction;
@@ -136,7 +137,8 @@ public class Main {
 						shouldTestEdaExploitString, 
 						shouldConstructIdaExploitString,
 						timeout,
-						maxComplexity);
+						maxComplexity,
+						new AtomicInteger(Integer.MIN_VALUE));
 		AnalysisDriverStdOut.performAnalysis(regexesReader, interfaceSettings, analysisSettings);
 	}
 

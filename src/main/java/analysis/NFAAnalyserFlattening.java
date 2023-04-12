@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import analysis.EdaAnalysisResults.EdaCases;
 import analysis.IdaAnalysisResults.IdaCases;
@@ -21,15 +22,15 @@ import nfa.transitionlabel.EpsilonTransitionLabel;
 
 public class NFAAnalyserFlattening extends NFAAnalyser {
 
-	public NFAAnalyserFlattening(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity) {
-		super(priorityRemovalStrategy, maxComplexity);
+	public NFAAnalyserFlattening(PriorityRemovalStrategy priorityRemovalStrategy, int maxComplexity, AtomicInteger maxSeenComplexity) {
+		super(priorityRemovalStrategy, maxComplexity, maxSeenComplexity);
 	}
 
 	@Override
 	protected EdaAnalysisResults calculateEdaAnalysisResults(NFAGraph originalM) {
 		NFAGraph flatGraph = flattenNFA(originalM);
 		
-		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(flatGraph, maxComplexity);
+		LinkedList<NFAGraph> sccsInFlat = NFAAnalysisTools.getStronglyConnectedComponents(flatGraph, maxComplexity, maxSeenComplexity);
 		if (sccsInFlat == null) {
 			return new TooComplexEdaAnalysisResults(originalM);
 		}

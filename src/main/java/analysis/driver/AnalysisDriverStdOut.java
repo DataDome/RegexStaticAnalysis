@@ -3,6 +3,7 @@ package analysis.driver;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -49,6 +50,7 @@ public class AnalysisDriverStdOut {
 	private static boolean shouldTestEdaExploitString;
 	private static boolean shouldConstructIdaExploitString;
 	private static int maxComplexity;
+	private static AtomicInteger maxSeenComplexity;
 	private static int timeout;
 	private static boolean timeoutEnabled;
 
@@ -70,6 +72,7 @@ public class AnalysisDriverStdOut {
 			timeoutEnabled = true;
 		}
 		maxComplexity = analysisSettings.getMaxComplexity();
+		maxSeenComplexity = analysisSettings.getMaxSeenComplexity();
 
 		int counter = 0;
 		int numAnalysed = 0;
@@ -327,6 +330,7 @@ public class AnalysisDriverStdOut {
 				System.out.println("\t\tIDA:\t" + numTimeoutInIda + "/" + counter);
 			}
 			
+			System.out.println("Max seen complexity: " + maxSeenComplexity.get());
 			System.out.println("Total running time: " + (endTime - startTime));
 		} catch (IOException ioe) {
 			System.err.println("Error while reading pattern.");
@@ -340,10 +344,10 @@ public class AnalysisDriverStdOut {
 		NFAAnalyser analyser;
 		switch (epsilonLoopRemovalStrategy) {
 		case MERGING:
-			analyser = new NFAAnalyserMerging(priorityRemovalStrategy, maxComplexity);
+			analyser = new NFAAnalyserMerging(priorityRemovalStrategy, maxComplexity, maxSeenComplexity);
 			break;
 		case FLATTENING:
-			analyser = new NFAAnalyserFlattening(priorityRemovalStrategy, maxComplexity);
+			analyser = new NFAAnalyserFlattening(priorityRemovalStrategy, maxComplexity, maxSeenComplexity);
 			break;
 		default:
 			throw new RuntimeException("Unknown Strategy: " + epsilonLoopRemovalStrategy);

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.KosarajuStrongConnectivityInspector;
@@ -506,9 +507,12 @@ public class NFAAnalysisTools {
 	 * 			  The maximum complexity to compute
 	 * @return A list containing all the strongly connected components or null when graph is too complex.
 	 */
-	public static LinkedList<NFAGraph> getStronglyConnectedComponents(NFAGraph m, int maxComplexity) {
+	public static LinkedList<NFAGraph> getStronglyConnectedComponents(NFAGraph m, int maxComplexity, AtomicInteger maxSeenComplexity) {
 		KosarajuStrongConnectivityInspector<NFAVertexND, NFAEdge> sci = new KosarajuStrongConnectivityInspector<NFAVertexND, NFAEdge>(m);
 		List<Graph<NFAVertexND, NFAEdge>> sccs = sci.getStronglyConnectedComponents();
+		if (maxSeenComplexity != null && sccs.size() > maxSeenComplexity.get()) {
+			maxSeenComplexity.set(sccs.size());
+		}
 		if (sccs.size() > maxComplexity) {
 			return null;
 		}
@@ -558,7 +562,7 @@ public class NFAAnalysisTools {
 	 * @return A list containing all the strongly connected components, with
 	 *         only epsilon transitions between the states, or null when graph is too complex.
 	 */
-	public static LinkedList<NFAGraph> getEpsilonStronglyConnectedComponents(NFAGraph m, int maxComplexity) {
+	public static LinkedList<NFAGraph> getEpsilonStronglyConnectedComponents(NFAGraph m, int maxComplexity, AtomicInteger maxSeenComplexity) {
 		NFAGraph epsilonGraph = m.copy();
 
 		/* iterating over m's edge set so we can modify epsilonGraph's edges */
@@ -569,7 +573,7 @@ public class NFAAnalysisTools {
 			}
 		}
 
-		return getStronglyConnectedComponents(epsilonGraph, maxComplexity);
+		return getStronglyConnectedComponents(epsilonGraph, maxComplexity, maxSeenComplexity);
 	}
 
 	/**
@@ -587,14 +591,14 @@ public class NFAAnalysisTools {
 	 * @return A HashMap containing the merged states as key and the original
 	 *         escc as value, ot null when graph is too complex.
 	 */
-	public static Map<NFAVertexND, NFAGraph> mergeStronglyConnectedComponents(NFAGraph m, boolean epsilon, int maxComplexity) {
+	public static Map<NFAVertexND, NFAGraph> mergeStronglyConnectedComponents(NFAGraph m, boolean epsilon, int maxComplexity, AtomicInteger maxSeenComplexity) {
 		Map<NFAVertexND, NFAGraph> mergedStates = new HashMap<NFAVertexND, NFAGraph>();
 
 		LinkedList<NFAGraph> sccs;
 		if (epsilon) {
-			sccs = getEpsilonStronglyConnectedComponents(m, maxComplexity);
+			sccs = getEpsilonStronglyConnectedComponents(m, maxComplexity, maxSeenComplexity);
 		} else {
-			sccs = getStronglyConnectedComponents(m, maxComplexity);
+			sccs = getStronglyConnectedComponents(m, maxComplexity, maxSeenComplexity);
 		}
 		if (sccs == null) {
 			return null;
