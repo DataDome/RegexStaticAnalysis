@@ -30,8 +30,6 @@ import util.InterruptibleMatchingString;
 
 import nfa.NFAGraph;
 
-import com.google.gson.Gson;
-
 public class AnalysisDriverStdOut {
 
 	private static boolean DEBUG = true;
@@ -167,7 +165,7 @@ public class AnalysisDriverStdOut {
 							System.out.println("EDA analysis performed in: " + ar.getEdaAnalysisTime() + "ms");
 							System.out.println("Contains EDA with: " + edaExploitStringStr);
 							if (constructedEdaExploitString) {
-                System.out.println("\tEDA exploit string as JSON:\t" + new Gson().toJson(edaExploitString));
+                System.out.println("\tEDA exploit string:\t" + edaExploitString);
 								System.out.println("\tPrefix:\t\"" + edaExploitString.getPrefixVisual() + "\"");
 								System.out.println("\tPump:\t\"" + edaExploitString.getPumpByDegreeVisual(0) + "\"");
 								System.out.println("\tSuffix:\t\"" + edaExploitString.getSuffixVisual() + "\"");
@@ -232,7 +230,7 @@ public class AnalysisDriverStdOut {
 							System.out.println("IDA analysis performed in: " + ar.getIdaAnalysisTime() + "ms");
 							System.out.println("Contains IDA, degree " + idaDegreeString + ", with: " + idaExploitStringStr);
 							if (constructedIdaExploitString) {
-                System.out.println("\tIDA exploit string as JSON:\t" + new Gson().toJson(idaExploitString));
+                System.out.println("\tIDA exploit string:\t" + idaExploitString);
 								for (int i = 0; i < degree; i++) {
 									if (i == 0) {
 										System.out.println("\tPrefix:\t\t\"" + idaExploitString.getSeparatorByDegreeVisual(i) + "\"");
